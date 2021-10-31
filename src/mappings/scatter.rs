@@ -37,13 +37,13 @@ impl Default for ScatterMapping {
 
 impl ScatterMapping {
 
-    pub fn map<D>(x : impl Iterator<Item=D>, y : impl Iterator<Item=D>) -> Self
+    pub fn map<D>(x : impl IntoIterator<Item=D>, y : impl IntoIterator<Item=D>) -> Self
     where
         D : AsRef<f64>
     {
         let mut scatter : ScatterMapping = Default::default();
-        let x : Vec<_> = x.map(|d| *d.as_ref() ).collect();
-        let y : Vec<_> = y.map(|d| *d.as_ref() ).collect();
+        let x : Vec<_> = x.into_iter().map(|d| *d.as_ref() ).collect();
+        let y : Vec<_> = y.into_iter().map(|d| *d.as_ref() ).collect();
         scatter.update_data(vec![x, y]);
         scatter
     }

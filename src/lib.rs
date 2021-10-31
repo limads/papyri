@@ -1089,11 +1089,19 @@ impl showable::Show for Plot {
     fn show(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", Panel::single(self.clone()).svg().unwrap())
     }
+
+    fn modality(&self) -> showable::Modality {
+        showable::Modality::XML
+    }
 }
 
 impl showable::Show for Panel {
     fn show(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.clone().svg().unwrap())
+    }
+
+    fn modality(&self) -> showable::Modality {
+        showable::Modality::XML
     }
 }
 

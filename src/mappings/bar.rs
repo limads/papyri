@@ -51,12 +51,12 @@ impl Default for BarMapping {
 
 impl BarMapping {
 
-    pub fn map<D>(ext : impl Iterator<Item=D>) -> Self
+    pub fn map<D>(ext : impl IntoIterator<Item=D>) -> Self
     where
         D : AsRef<f64>
     {
         let mut bar : BarMapping = Default::default();
-        let extension : Vec<_> = ext.map(|d| *d.as_ref() ).collect();
+        let extension : Vec<_> = ext.into_iter().map(|d| *d.as_ref() ).collect();
         bar.update_data(vec![extension]);
         bar
     }

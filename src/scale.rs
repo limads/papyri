@@ -39,7 +39,7 @@ impl Default for Adjustment {
 
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Scale {
     pub label : String,
     pub precision : i32,
@@ -51,6 +51,26 @@ pub struct Scale {
     pub invert : bool,
     pub offset : i32,
     pub adj : Adjustment
+}
+
+impl Default for Scale {
+
+    fn default() -> Self {
+        let mut s = Scale {
+            label : String::new(),
+            precision : 4,
+            from : 0.0,
+            to : 1.0,
+            steps : vec![],
+            n_intervals : 4,
+            log : false,
+            invert : false,
+            offset : 0,
+            adj : Adjustment::Tight
+        };
+        s.update_steps();
+        s
+    }
 }
 
 impl Scale {

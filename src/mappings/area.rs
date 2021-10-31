@@ -40,14 +40,14 @@ impl Default for AreaMapping {
 
 impl AreaMapping {
 
-    pub fn map<D>(x : impl Iterator<Item=D>, ymin : impl Iterator<Item=D>, ymax : impl Iterator<Item=D>) -> Self
+    pub fn map<D>(x : impl IntoIterator<Item=D>, ymin : impl IntoIterator<Item=D>, ymax : impl IntoIterator<Item=D>) -> Self
     where
         D : AsRef<f64>
     {
         let mut area : AreaMapping = Default::default();
-        let x : Vec<_> = x.map(|d| *d.as_ref() ).collect();
-        let ymin : Vec<_> = ymin.map(|d| *d.as_ref() ).collect();
-        let ymax : Vec<_> = ymax.map(|d| *d.as_ref() ).collect();
+        let x : Vec<_> = x.into_iter().map(|d| *d.as_ref() ).collect();
+        let ymin : Vec<_> = ymin.into_iter().map(|d| *d.as_ref() ).collect();
+        let ymax : Vec<_> = ymax.into_iter().map(|d| *d.as_ref() ).collect();
         area.update_data(vec![x, ymin, ymax]);
         area
     }

@@ -12,6 +12,7 @@ use super::*;
 use std::cmp::*;
 use super::super::{MappingProperty, TextProperty};
 use std::fmt::Display;
+use std::borrow::Borrow;
 
 #[derive(Debug, Clone)]
 pub struct TextMapping {
@@ -42,15 +43,15 @@ impl Default for TextMapping {
 
 impl TextMapping {
 
-    pub fn map<D, T>(x : impl Iterator<Item=D>, y : impl Iterator<Item=D>, text : impl Iterator<Item=T>) -> Self
+    pub fn map<D, T>(x : impl IntoIterator<Item=D>, y : impl IntoIterator<Item=D>, text : impl IntoIterator<Item=T>) -> Self
     where
-        D : AsRef<f64>,
+        D : Borrow<f64>,
         T : Display
     {
         let mut text_m : TextMapping = Default::default();
-        let x : Vec<_> = x.map(|d| *d.as_ref() ).collect();
-        let y : Vec<_> = y.map(|d| *d.as_ref() ).collect();
-        let text : Vec<_> = text.map(|t| format!("{}", t) ).collect();
+        let x : Vec<_> = x.into_iter().map(|d| *d.borrow() ).collect();
+        let y : Vec<_> = y.into_iter().map(|d| *d.borrow() ).collect();
+        let text : Vec<_> = text.into_iter().map(|t| format!("{}", t) ).collect();
         text_m.update_data(vec![x, y]);
         text_m.set_text_data(&text);
         text_m
