@@ -269,7 +269,7 @@ impl Mapping for SurfaceMapping {
         self.x = values.remove(0);
         self.y = values.remove(0);
         self.z = values.remove(0);
-        println!("setting data = {:?}", self.z);
+        // println!("setting data = {:?}", self.z);
         /*let mut triples : Vec<(f64, f64, f64)> =
             x.iter().zip(y.iter()).zip(z.iter())
                 .map(|((x, y), z)| (*x, *y, *z) )
@@ -309,7 +309,7 @@ impl Mapping for SurfaceMapping {
     }
 
     fn update_extra_data(&mut self, _values : Vec<Vec<String>>) {
-        println!("Mapping has no extra data");
+        // println!("Mapping has no extra data");
     }
 
     fn update_layout(&mut self, node : &Node) -> Result<(), String> {

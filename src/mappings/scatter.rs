@@ -9,6 +9,7 @@ use super::*;
 use std::cmp::*;
 use std::str::FromStr;
 use super::super::{MappingProperty, ScatterProperty};
+use std::borrow::Borrow;
 
 #[derive(Debug, Clone)]
 pub struct ScatterMapping {
@@ -37,13 +38,23 @@ impl Default for ScatterMapping {
 
 impl ScatterMapping {
 
+    pub fn color(mut self, color : String) -> Self {
+        self.color = color.parse().unwrap();
+        self
+    }
+
+    pub fn radius(mut self, radius : f64) -> Self {
+        self.radius = radius;
+        self
+    }
+
     pub fn map<D>(x : impl IntoIterator<Item=D>, y : impl IntoIterator<Item=D>) -> Self
     where
-        D : AsRef<f64>
+        D : Borrow<f64>
     {
         let mut scatter : ScatterMapping = Default::default();
-        let x : Vec<_> = x.into_iter().map(|d| *d.as_ref() ).collect();
-        let y : Vec<_> = y.into_iter().map(|d| *d.as_ref() ).collect();
+        let x : Vec<_> = x.into_iter().map(|d| *d.borrow() ).collect();
+        let y : Vec<_> = y.into_iter().map(|d| *d.borrow() ).collect();
         scatter.update_data(vec![x, y]);
         scatter
     }
@@ -99,7 +110,7 @@ impl Mapping for ScatterMapping {
             self.radius = radius;
         }
 
-        println!("Scatter mapping json rep: {:?}", rep);
+        // println!("Scatter mapping json rep: {:?}", rep);
 
         super::update_data_pair_from_json(&mut self.x, &mut self.y, rep);
     }
@@ -132,7 +143,7 @@ impl Mapping for ScatterMapping {
     }
 
     fn update_extra_data(&mut self, _values : Vec<Vec<String>>) {
-        println!("Mapping has no extra data");
+        // println!("Mapping has no extra data");
     }
 
     fn update_layout(&mut self, node : &Node) -> Result<(), String> {

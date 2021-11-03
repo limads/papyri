@@ -183,14 +183,14 @@ impl Mapping for LineMapping {
             self.color = color.parse().unwrap();
         }
 
-        println!("Mapping json rep: {:?}", rep);
+        // println!("Mapping json rep: {:?}", rep);
 
         super::update_data_pair_from_json(&mut self.x, &mut self.y, rep);
         // TODO check properties of other mappings are None.
     }
 
     fn update_extra_data(&mut self, _values : Vec<Vec<String>>) {
-        println!("Mapping has no extra data");
+        // println!("Mapping has no extra data");
     }
 
     fn update_layout(&mut self, node : &Node) -> Result<(), String> {

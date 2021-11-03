@@ -215,11 +215,11 @@ impl Scale {
 pub fn adjust_segment(seg : &mut Scale, adj : Adjustment, data_min : f64, data_max : f64) {
     match adj {
         Adjustment::Tight => {
-            println!("Tight adjustment applied");
+            // println!("Tight adjustment applied");
             *seg = seg.clone().extension(data_min, data_max);
         },
         Adjustment::Round => {
-            println!("Rounded adjustment applied");
+            // println!("Rounded adjustment applied");
             let (ideal_min, ideal_max) = context_mapper::round_to_most_extreme(data_min, data_max);
             let (curr_min, curr_max) = (seg.from, seg.to);
             let ampl = (data_max - data_min).abs();

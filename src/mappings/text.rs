@@ -43,6 +43,16 @@ impl Default for TextMapping {
 
 impl TextMapping {
 
+    pub fn color(mut self, color : String) -> Self {
+        self.color = color.parse().unwrap();
+        self
+    }
+
+    pub fn font(mut self, font : String) -> Self {
+        self.font = FontData::new_from_string(&font);
+        self
+    }
+
     pub fn map<D, T>(x : impl IntoIterator<Item=D>, y : impl IntoIterator<Item=D>, text : impl IntoIterator<Item=T>) -> Self
     where
         D : Borrow<f64>,
@@ -117,7 +127,7 @@ impl Mapping for TextMapping {
             self.color = color.parse().unwrap();
         }
 
-        println!("Mapping json rep: {:?}", rep);
+        // println!("Mapping json rep: {:?}", rep);
 
         super::update_textual_data_from_json(&mut self.x, &mut self.y, &mut self.text, rep);
     }
@@ -125,8 +135,8 @@ impl Mapping for TextMapping {
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
         ctx.save();
         if !((self.x.len() == self.y.len()) && (self.x.len() == self.text.len())) {
-            println!("Invalid dimensions at textual mapping");
-            println!("x: {}; y: {}; t: {}", self.x.len(), self.y.len(), self.text.len());
+            // println!("Invalid dimensions at textual mapping");
+            // println!("x: {}; y: {}; t: {}", self.x.len(), self.y.len(), self.text.len());
         }
         ctx.set_source_rgb(
             self.color.red,
@@ -148,7 +158,7 @@ impl Mapping for TextMapping {
                     None
                 );
             } else {
-                //println!("Out of bounds mapping");
+                // println!("Out of bounds mapping");
             }
         }
         ctx.restore();
@@ -163,7 +173,7 @@ impl Mapping for TextMapping {
         if let Some(tv) = values.get(0) {
             self.text = tv.clone();
         } else {
-            println!("Text data vector is empty");
+            // println!("Text data vector is empty");
         }
     }
 

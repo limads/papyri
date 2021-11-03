@@ -3,15 +3,15 @@ use gdk::RGBA;
 use cairo::Context;
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
-// use std::f64::consts::PI;
 use super::utils;
-//use super::context_mapper::Coord2D;
-// use cairo::ScaledFont;
-// use super::super::text::{FontData, draw_label};
 use super::*;
 use std::mem;
 use super::super::MappingProperty;
+use std::borrow::Borrow;
 
+/// Represents ordered, regularly-spaced bars. The only map required by the bars
+/// is their height (or width if they are horizontally spaced), since the bar position
+/// is fully determined by its order in the data array, the informed offset and bar spacing (at data scale).
 #[derive(Debug, Clone)]
 pub struct BarMapping {
     color : RGBA,
@@ -21,9 +21,18 @@ pub struct BarMapping {
     h : Vec<f64>,
     w : Vec<f64>,
     col_names : [String; 4],
+
+    // TODO rename to bar thickness, since the graph mihgt be horizontal. This is at the scale of 1-100
+    // where 100 represents a bar with thickness covering the whole bar_spacing interval.
     bar_width : f64,
+
+    // Bar origin, at data scale.
     origin : (f64, f64),
+
+    // Value, in data coordiantes, that positions the ith bar relative to the origin.
+    // If center_anchor = false, the top-left position of the bar at index i will be at origin + bar_spacing * i
     bar_spacing : f64,
+
     horizontal : bool,
     source : String
 }
@@ -31,32 +40,70 @@ pub struct BarMapping {
 impl Default for BarMapping {
 
     fn default() -> Self {
-        Self {
+        let mut bar = Self {
             color : RGBA::black(),
             x : Vec::new(),
             y : Vec::new(),
             h : Vec::new(),
             w : Vec::new(),
             col_names : [String::new(), String::new(), String::new(), String::new()],
-            bar_width : 1.0,
+            bar_width : 100.0,
             origin : (0.0, 0.0),
             bar_spacing : 1.0,
             horizontal : false,
             center_anchor : false,
             source : String::new()
-        }
+        };
+        bar.adjust_bar();
+        bar
     }
 
 }
 
 impl BarMapping {
 
+    pub fn color(mut self, color : String) -> Self {
+        self.color = color.parse().unwrap();
+        self.adjust_bar();
+        self
+    }
+
+    pub fn center_anchor(mut self, center_anchor : bool) -> Self {
+        self.center_anchor = center_anchor;
+        self.adjust_bar();
+        self
+    }
+
+    pub fn width(mut self, w : f64) -> Self {
+        self.bar_width = w;
+        self.adjust_bar();
+        self
+    }
+
+    pub fn origin(mut self, origin : (f64, f64)) -> Self {
+        self.origin = origin;
+        self.adjust_bar();
+        self
+    }
+
+    pub fn bar_spacing(mut self, bar_spacing : f64) -> Self {
+        self.bar_spacing = bar_spacing;
+        self.adjust_bar();
+        self
+    }
+
+    pub fn horizontal(mut self, horizontal : bool) -> Self {
+        self.horizontal = horizontal;
+        self.adjust_bar();
+        self
+    }
+
     pub fn map<D>(ext : impl IntoIterator<Item=D>) -> Self
     where
-        D : AsRef<f64>
+        D : Borrow<f64>
     {
         let mut bar : BarMapping = Default::default();
-        let extension : Vec<_> = ext.into_iter().map(|d| *d.as_ref() ).collect();
+        let extension : Vec<_> = ext.into_iter().map(|d| *d.borrow() ).collect();
         bar.update_data(vec![extension]);
         bar
     }
@@ -120,7 +167,6 @@ impl BarMapping {
 
 }
 
-
 impl Mapping for BarMapping {
 
     fn clone_boxed(&self) -> Box<dyn Mapping> {
@@ -130,8 +176,7 @@ impl Mapping for BarMapping {
     fn update(&mut self, prop : MappingProperty) -> bool {
         match prop {
             MappingProperty::Line(line) => {
-
-                true
+                unimplemented!()
             },
             _ => false
         }
@@ -170,7 +215,7 @@ impl Mapping for BarMapping {
                 ctx.fill();
                 ctx.stroke();
             } else {
-                println!("Out of bounds mapping");
+                // println!("Out of bounds mapping");
             }
         }
         ctx.restore();
@@ -192,7 +237,7 @@ impl Mapping for BarMapping {
     }
 
     fn update_extra_data(&mut self, _values : Vec<Vec<String>>) {
-        println!("Mapping has no extra data");
+        // println!("Mapping has no extra data");
     }
 
     fn update_layout(&mut self, node : &Node) -> Result<(), String> {
@@ -243,10 +288,10 @@ impl Mapping for BarMapping {
             .ok_or(format!("Source property not found"))?
             .clone();
         self.adjust_bar();
-        println!("x: {:?}", self.x);
+        /*println!("x: {:?}", self.x);
         println!("y: {:?}", self.y);
         println!("w: {:?}", self.w);
-        println!("h: {:?}", self.h);
+        println!("h: {:?}", self.h);*/
         Ok(())
     }
 

@@ -47,6 +47,8 @@ pub use mappings::surface::*;
 
 pub use mappings::text::*;
 
+pub use mappings::area::*;
+
 //use sync::*;
 /*impl Mapping for BarMapping {
 }*/
@@ -135,7 +137,7 @@ pub mod json {
                 log : false,
                 invert : false,
                 offset : 0,
-                adjust : None
+                adjust : Some(String::from("tight"))
             }
         }
     }
@@ -728,6 +730,7 @@ impl Panel {
             // ctx.move_to(0.0, 0.0);
             ctx.translate(origin.0, origin.1);
             // println!("i: {}; origin: {:?}, size: {:?}", i, origin, size);
+            println!("{:?}", plot.mapper);
             plot.draw_plot(&ctx, &self.design, size.0, size.1);
             ctx.restore();
         }
@@ -1111,6 +1114,10 @@ impl Plot {
         Panel::single(self.clone()).svg().unwrap()
     }
 
+    pub fn draw_to_file(&self, path : &str) -> Result<(), String> {
+        Panel::single(self.clone()).draw_to_file(path)
+    }
+
     pub fn scale_x(mut self, scale : Scale) -> Self {
         self.x = scale;
         self.adjust_scales();
@@ -1148,9 +1155,9 @@ impl Plot {
 
     pub fn adjust_scales(&mut self) {
         if let Some(((new_xmin, new_xmax), (new_ymin, new_ymax))) = self.max_data_limits() {
-            println!("Data limits = {:?}", (new_xmin, new_xmax, new_ymin, new_ymax));
+            // println!("Data limits = {:?}", (new_xmin, new_xmax, new_ymin, new_ymax));
             let (x_adj, y_adj) = (self.x.adj, self.y.adj);
-            println!("Adjustments = {:?}", (x_adj, y_adj));
+            // println!("Adjustments = {:?}", (x_adj, y_adj));
             scale::adjust_segment(&mut self.x, x_adj, new_xmin, new_xmax);
             scale::adjust_segment(&mut self.y, y_adj, new_ymin, new_ymax);
             self.mapper.update_data_extensions(self.x.from, self.x.to, self.y.from, self.y.to);
@@ -1194,7 +1201,7 @@ impl Plot {
         };
         area.adjust_scales();
 
-        println!("Plot area = {:?}", area);
+        // println!("Plot area = {:?}", area);
 
         // We do not load any design definitions here, but rather at Panel::new(),
         // since the design might be defined at Panel-level.

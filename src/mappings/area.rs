@@ -12,6 +12,7 @@ use super::*;
 //use crate::mappings::other::Mapping;
 use std::cmp::*;
 use super::super::MappingProperty;
+use std::borrow::Borrow;
 
 #[derive(Debug, Clone)]
 pub struct AreaMapping {
@@ -40,14 +41,19 @@ impl Default for AreaMapping {
 
 impl AreaMapping {
 
+    pub fn color(mut self, color : String) -> Self {
+        self.color = color.parse().unwrap();
+        self
+    }
+
     pub fn map<D>(x : impl IntoIterator<Item=D>, ymin : impl IntoIterator<Item=D>, ymax : impl IntoIterator<Item=D>) -> Self
     where
-        D : AsRef<f64>
+        D : Borrow<f64>
     {
         let mut area : AreaMapping = Default::default();
-        let x : Vec<_> = x.into_iter().map(|d| *d.as_ref() ).collect();
-        let ymin : Vec<_> = ymin.into_iter().map(|d| *d.as_ref() ).collect();
-        let ymax : Vec<_> = ymax.into_iter().map(|d| *d.as_ref() ).collect();
+        let x : Vec<_> = x.into_iter().map(|d| *d.borrow() ).collect();
+        let ymin : Vec<_> = ymin.into_iter().map(|d| *d.borrow() ).collect();
+        let ymax : Vec<_> = ymax.into_iter().map(|d| *d.borrow() ).collect();
         area.update_data(vec![x, ymin, ymax]);
         area
     }
@@ -265,7 +271,7 @@ impl Mapping for AreaMapping {
     }
 
     fn update_extra_data(&mut self, _values : Vec<Vec<String>>) {
-        println!("Mapping has no extra data");
+        // println!("Mapping has no extra data");
     }
 
     fn set_col_names(&mut self, cols : Vec<String>) -> Result<(), &'static str> {
