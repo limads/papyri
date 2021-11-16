@@ -132,14 +132,14 @@ fn create_scaled_font(
     let mut font_m =  Matrix::identity();
     let ctm = Matrix::identity();
     font_m.scale(size as f64, size as f64);
-    let opts = FontOptions::new();
+    let opts = FontOptions::new() /*.unwrap()*/;
     // context.get_font_face()
     let font_face = FontFace::toy_create(
         family,
         slant,
         weight
-    );
-    ScaledFont::new(&font_face, &font_m, &ctm, &opts)
+    ) /*.unwrap()*/ ;
+    ScaledFont::new(&font_face, &font_m, &ctm, &opts) /*.unwrap()*/
 }
 
 /// Draw a text with horizontal and vertical extents centered
@@ -175,7 +175,7 @@ pub fn draw_label(
     let ext_off_y = off_y.unwrap_or(0.0)*height + y_center_off;
     pos.x += ext_off_x;
     pos.y += ext_off_y;
-    let (glyphs, _) = sf.text_to_glyphs(pos.x, pos.y, label);
+    let (glyphs, _) = sf.text_to_glyphs(pos.x, pos.y, label) /*.unwrap()*/;
     let radius = (pos.x.powf(2.0) + pos.y.powf(2.0)).sqrt();
     if rotate {
         //ctx.translate(-radius + height, radius);

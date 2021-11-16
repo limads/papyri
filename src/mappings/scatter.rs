@@ -60,12 +60,7 @@ impl ScatterMapping {
     }
 
     pub fn new(node : &Node) -> Result<Self,String> {
-        let color = gdk::RGBA{
-            red: 0.0,
-            green: 0.0,
-            blue: 0.0,
-            alpha : 0.0
-        };
+        let color = RGBA::black();
         let radius = 1.0;
         let x = Vec::<f64>::new();
         let y = Vec::<f64>::new();
@@ -130,7 +125,7 @@ impl Mapping for ScatterMapping {
                 ctx.fill();
                 ctx.stroke();
             } else {
-                //println!("Out of bounds mapping");
+                println!("Out of bounds mapping");
             }
         }
         ctx.restore();
@@ -202,9 +197,9 @@ impl Mapping for ScatterMapping {
 
     fn data_limits(&self) -> Option<((f64, f64), (f64, f64))> {
         let xmin = self.x.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;
-        let xmax = self.x.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
-        let ymin = self.y.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
-        let ymax = self.y.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
+        let xmax = self.x.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;
+        let ymin = self.y.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;
+        let ymax = self.y.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;
         Some(((*xmin, *xmax), (*ymin, *ymax)))
     }
 

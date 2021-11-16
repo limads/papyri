@@ -23,13 +23,16 @@ pub mod surface;
 
 pub mod text;
 
+pub mod interval;
+
 pub enum MappingType {
     Line,
     Scatter,
     Bar,
     Area,
     Surface,
-    Text
+    Text,
+    Interval
 }
 
 impl MappingType {
@@ -42,6 +45,7 @@ impl MappingType {
             "area" => Some(MappingType::Area),
             "surface" => Some(MappingType::Surface),
             "text" => Some(MappingType::Text),
+            "interval" => Some(MappingType::Interval),
             _ => None
         }
     }
@@ -87,6 +91,9 @@ impl MappingType {
             MappingType::Text => {
                 hash.insert(String::from("font"), String::from("Monospace Regular 12"));
                 hash.insert(String::from("text"), String::from("None"));
+            },
+            MappingType::Interval => {
+                unimplemented!()
             }
         }
         hash
@@ -108,12 +115,18 @@ fn update_data_triplet_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, z : &mut 
     if let Some(ref mut map) = rep.map {
         if let Some(new_x) = mem::take(&mut map.x) {
             *x = new_x;
+        } else {
+            println!("Missing x");
         }
         if let Some(new_y) = mem::take(&mut map.y) {
             *y = new_y;
+        } else {
+            println!("Missing y");
         }
         if let Some(new_z) = mem::take(&mut map.z) {
             *z = new_z;
+        } else {
+            println!("Missing z");
         }
     }
 }
@@ -158,6 +171,10 @@ pub fn new_from_json(mut rep : super::json::Mapping) -> Result<Box<dyn Mapping>,
         "text" => {
             let text : text::TextMapping = Default::default();
             Box::new(text)
+        },
+        "interval" => {
+            let intv : interval::IntervalMapping = Default::default();
+            Box::new(intv)
         },
         _ => panic!("Unrecognized mapping")
     };

@@ -59,6 +59,7 @@ impl LineMapping {
         self
     }
 
+    // TODO rename to data.
     pub fn map<D>(x : impl IntoIterator<Item=D>, y : impl IntoIterator<Item=D>) -> Self
     where
         D : Borrow<f64>

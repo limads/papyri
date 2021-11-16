@@ -49,6 +49,8 @@ pub use mappings::text::*;
 
 pub use mappings::area::*;
 
+pub use mappings::interval::*;
+
 //use sync::*;
 /*impl Mapping for BarMapping {
 }*/
@@ -157,7 +159,7 @@ pub mod json {
     #[derive(Debug, Clone, Default, Serialize, Deserialize)]
     pub struct Mapping {
 
-        // Must be line|scatter|area|bar|surface|text
+        // Must be line|scatter|area|bar|surface|text|interval
         pub kind : String,
 
         pub color : Option<String>,
@@ -165,9 +167,8 @@ pub mod json {
         pub map : Option<Map>,
 
         // area-specific
-        pub ymin : Option<f64>,
-
-        pub ymax : Option<f64>,
+        // pub ymin : Option<f64>,
+        // pub ymax : Option<f64>,
 
         // text-specific
         pub text : Option<Vec<String>>,
@@ -176,9 +177,13 @@ pub mod json {
         // Scatter-specific
         pub radius : Option<f64>,
 
-        // Line-specific
+        // Line and interval-specific
         pub width : Option<f64>,
         pub spacing : Option<i32>,
+
+        // Interval-specific
+        pub limits : Option<f64>,
+        pub vertical : Option<bool>,
 
     }
 
@@ -290,11 +295,23 @@ pub enum TextProperty {
     Text(Vec<String>)
 }
 
+pub enum IntervalProperty {
+    Color(String),
+    Width(f64),
+    Dash(i32),
+    Center(Vec<f64>),
+    Lower(Vec<f64>),
+    Upper(Vec<f64>),
+    Limit(f64),
+    Vertical(bool)
+}
+
 /// Must come with plot position and mapping position within plot
 pub enum MappingProperty {
     Line(LineProperty),
     Scatter(ScatterProperty),
-    Text(TextProperty)
+    Text(TextProperty),
+    Interval(IntervalProperty)
 }
 
 pub enum ScaleMode {
@@ -593,7 +610,7 @@ impl Panel {
             self.dimensions.1 as f64,
             buf
         ).map_err(|e| format!("Error creating SVG surface: {}", e) )?;
-        let ctx = Context::new(&surf);
+        let ctx = Context::new(&surf) /*.unwrap()*/ ;
         self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
         let stream = surf.finish_output_stream().unwrap();
         Ok(String::from_utf8(stream.downcast_ref::<Vec<u8>>().unwrap().clone())?)
@@ -614,7 +631,7 @@ impl Panel {
                     self.dimensions.1 as f64,
                     Some(path)
                 ).map_err(|e| format!("Error creating SVG surface: {}", e) )?;
-                let ctx = Context::new(&surf);
+                let ctx = Context::new(&surf) /*.unwrap()*/ ;
                 self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
             },
             Some("png") => {
@@ -623,7 +640,7 @@ impl Panel {
                     self.dimensions.0 as i32,
                     self.dimensions.1 as i32,
                 ).map_err(|e| format!("Error creating PNG image surface: {}", e) )?;
-                let ctx = Context::new(&surf);
+                let ctx = Context::new(&surf) /*.unwrap()*/ ;
                 // ctx.scale(3.0, 3.0);
                 self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
                 let mut f = File::create(path).map_err(|e| format!("Unable to open PNG file:{}", e))?;
@@ -637,7 +654,7 @@ impl Panel {
                     path
                 ).map_err(|e| format!("Error creating Postscript surface: {}", e) )?;
                 surf.set_eps(true);
-                let ctx = Context::new(&surf);
+                let ctx = Context::new(&surf) /*.unwrap()*/ ;
                 self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
             },
             Some(other) => {
@@ -730,7 +747,7 @@ impl Panel {
             // ctx.move_to(0.0, 0.0);
             ctx.translate(origin.0, origin.1);
             // println!("i: {}; origin: {:?}, size: {:?}", i, origin, size);
-            println!("{:?}", plot.mapper);
+            // println!("{:?}", plot.mapper);
             plot.draw_plot(&ctx, &self.design, size.0, size.1);
             ctx.restore();
         }
@@ -1161,6 +1178,7 @@ impl Plot {
             scale::adjust_segment(&mut self.x, x_adj, new_xmin, new_xmax);
             scale::adjust_segment(&mut self.y, y_adj, new_ymin, new_ymax);
             self.mapper.update_data_extensions(self.x.from, self.x.to, self.y.from, self.y.to);
+            println!("{:?}", self.mapper);
         } else {
             println!("Could not retrieve data limits");
         }
@@ -1168,7 +1186,7 @@ impl Plot {
 
     pub fn new_from_json(mut rep : json::Plot) -> Result<Plot, Box<dyn Error>> {
 
-        // println!("JSON rep: {:?}", rep);
+        println!("JSON rep: {:?}", rep);
 
         let mut mappings = Vec::new();
 
@@ -1225,6 +1243,7 @@ impl Plot {
     }*/
 
     fn draw_plot(&mut self, ctx: &Context, design : &PlotDesign, w : i32, h : i32) {
+        println!("Drawn plot : {:?}", self);
         self.mapper.update_dimensions(w, h);
         // If frozen, do not redraw background/grid.
         // Draw only frozen mapping increment.
@@ -1243,6 +1262,7 @@ impl Plot {
         let mut x_lims = Vec::new();
         let mut y_lims = Vec::new();
         for (xl, yl) in self.mappings.iter().filter_map(|m| m.data_limits() ) {
+            println!("{:?}", (xl, yl));
             x_lims.push(xl);
             y_lims.push(yl);
         }
@@ -1433,6 +1453,12 @@ impl Plot {
                     surface_mapping.set_source(mapping_source);
                     surface_mapping.set_col_names(col_names);
                     self.mappings.insert(m_ix, Box::new(surface_mapping));
+                },
+                MappingType::Interval => {
+                    let mut intv_mapping = IntervalMapping::new(&new_mapping)?;
+                    intv_mapping.set_source(mapping_source);
+                    intv_mapping.set_col_names(col_names);
+                    self.mappings.insert(m_ix, Box::new(intv_mapping));
                 }
             }
 
@@ -1707,7 +1733,7 @@ impl Plot {
                     empty_data.push(Vec::new());
                     empty_data.push(Vec::new());
                     empty_data.push(Vec::new());
-                }
+                },
                 _ => {
                     println!("Invalid mapping type");
                     return;
