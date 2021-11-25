@@ -260,7 +260,14 @@ impl Mapping for TextMapping {
         cols
     }
 
+    // TODO account for the full text box here, not only the top-left position.
+    // Consider the special case of a single data point (not only for text,
+    // but for all non-line mappings) where a minimum scale region should be
+    // guaranteed to plot anything (even the grid lines) when adjust is set to tight.
     fn data_limits(&self) -> Option<((f64, f64), (f64, f64))> {
+
+        // let (glyphs, _) = sf.text_to_glyphs(pos.x, pos.y, label)
+        // sf.glyph_extents(&glyphs[..]);
         let xmin = self.x.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;
         let xmax = self.x.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
         let ymin = self.y.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;

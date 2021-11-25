@@ -10,6 +10,7 @@ use std::default::Default;
 use std::mem;
 use std::error::Error;
 use std::fmt::Debug;
+use base64;
 
 pub mod area;
 

@@ -63,10 +63,7 @@ impl Default for ContextMapper {
             w : 800,
             h : 600
         };
-        let (xext, yext) = ContextMapper::calc_ext(
-            mapper.xmax, mapper.xmin, mapper.ymax, mapper.ymin, false, false);
-        mapper.xext = xext;
-        mapper.yext = yext;
+        mapper.update();
         mapper
     }
 
@@ -90,19 +87,24 @@ impl ContextMapper {
         xext, yext, w, h, xlog, ylog, xinv, yinv}
     }
 
-    pub fn update_data_extensions(&mut self, xmin : f64, xmax : f64, ymin : f64, ymax : f64) {
-        self.xmin = xmin;
-        self.xmax = xmax;
-        self.ymin = ymin;
-        self.ymax = ymax;
+    pub fn update(&mut self) {
         let (xext, yext) = Self::calc_ext(self.xmax, self.xmin, self.ymax, self.ymin, self.xlog, self.ylog);
         self.xext = xext;
         self.yext = yext;
     }
 
+    pub fn update_data_extensions(&mut self, xmin : f64, xmax : f64, ymin : f64, ymax : f64) {
+        self.xmin = xmin;
+        self.xmax = xmax;
+        self.ymin = ymin;
+        self.ymax = ymax;
+        self.update();
+    }
+
     pub fn update_dimensions(&mut self, w : i32, h : i32) {
         self.w = w;
         self.h = h;
+        self.update();
     }
 
     pub fn calc_ext(xmax : f64, xmin : f64, ymax : f64, ymin : f64,
@@ -118,16 +120,12 @@ impl ContextMapper {
         (xext, yext)
     }
 
-    pub fn set_mode(
-        &mut self, xinv : bool, xlog : bool, yinv : bool, ylog : bool) {
+    pub fn set_mode(&mut self, xinv : bool, xlog : bool, yinv : bool, ylog : bool) {
         self.xlog = xlog;
         self.xinv = xinv;
         self.ylog = ylog;
         self.yinv = yinv;
-        let (xext, yext) = ContextMapper::calc_ext(
-            self.xmax, self.xmin, self.ymax, self.ymin, xlog, ylog);
-        self.xext = xext;
-        self.yext = yext;
+        self.update();
     }
 
     pub fn map(&self, x : f64, y : f64) -> Coord2D {

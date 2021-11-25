@@ -26,6 +26,8 @@ use std::mem;
 use std::str::FromStr;
 use either::Either;
 use text::FontData;
+use std::process::Command;
+use tempfile;
 
 pub mod mappings;
 
@@ -96,12 +98,16 @@ pub mod json {
         }
     }
 
+    // #[derive(Clone, Debug, Serialize, Deserialize)]
+    // pub struct Layout { ratio : f64, stacked : bool }
+
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct Layout {
         pub width : i32,
         pub height : i32,
         pub horizontal_ratio : f64,
-        pub vertical_ratio : f64
+        pub vertical_ratio : f64,
+        pub split : Option<String>
     }
 
     impl Default for Layout {
@@ -110,7 +116,8 @@ pub mod json {
                 width : 800,
                 height : 600,
                 horizontal_ratio : 0.5,
-                vertical_ratio : 0.5
+                vertical_ratio : 0.5,
+                split : None
             }
         }
     }
@@ -201,7 +208,7 @@ pub mod json {
     pub struct Panel {
         // TODO add this field and derive deserialize here manually.
         // pub elements : Vec<Either<Box<Panel>, Plot>>,
-        pub elements : Vec<Panel>,
+        pub elements : Vec<Plot>,
         pub design : Option<Design>,
         pub layout : Option<Layout>
     }
@@ -231,18 +238,27 @@ impl FromStr for GroupSplit {
 
     fn from_str(s : &str) -> Result<Self, ()> {
         match s {
-            "Unique" => Ok(Self::Unique),
-            "Four" => Ok(Self::Four),
-            "Horizontal" => Ok(Self::Horizontal),
-            "Vertical" => Ok(Self::Vertical),
-            "ThreeLeft" => Ok(Self::ThreeLeft),
-            "ThreeTop" => Ok(Self::ThreeTop),
-            "ThreeRight" => Ok(Self::ThreeRight),
-            "ThreeBottom" => Ok(Self::ThreeBottom),
+            "Unique" | "unique" => Ok(Self::Unique),
+            "Four" | "four" => Ok(Self::Four),
+            "Horizontal" | "horizontal" => Ok(Self::Horizontal),
+            "Vertical" | "vertical" => Ok(Self::Vertical),
+            "ThreeLeft" | "threeleft"=> Ok(Self::ThreeLeft),
+            "ThreeTop" | "threetop" => Ok(Self::ThreeTop),
+            "ThreeRight" | "threeright" => Ok(Self::ThreeRight),
+            "ThreeBottom" | "threebottom" => Ok(Self::ThreeBottom),
             _ => Err(())
         }
     }
 
+}
+
+fn n_plots_for_split(split : &GroupSplit) -> usize {
+    match split {
+        GroupSplit::Unique => 1,
+        GroupSplit::Vertical | GroupSplit::Horizontal => 2,
+        GroupSplit::Four => 4,
+        GroupSplit::ThreeLeft | GroupSplit::ThreeTop | GroupSplit::ThreeRight | GroupSplit::ThreeBottom => 3,
+    }
 }
 
 pub enum LayoutProperty {
@@ -338,9 +354,14 @@ pub enum GroupProperty {
     Plot(usize, PlotProperty)
 }
 
-// Maybe study using strong_xml crate?
-
-/// A Panel has at least one first plot. //
+/// A Panel is a set of 1-4 plots with a given layout. Regions with arbitrary
+/// number of plots can be built by splitting it according to some aspect
+/// ratio and drawing multiple panels to it. To draw a 3x3 grid, for example,
+/// use a 2x2 panel at the top-left, a 1x2 at the bottom, a 2x1 at the right
+/// and a 1x1 at the bottom-right, such that the aspect ratios of the regions
+/// are such that the different layouts do not matter for the final output.
+/// TODO perhaps rename this 1-4 unit to "composition" and rename the set
+/// of compositions as "Panel".
 #[derive(Clone)]
 pub struct Panel {
 
@@ -358,8 +379,16 @@ pub struct Panel {
 
     // parser : Parser,
 
-    doc : Document
+    // doc : Document
 }
+
+unsafe impl Send for Panel { }
+
+unsafe impl Sync for Panel { }
+
+unsafe impl Send for Plot { }
+
+unsafe impl Sync for Plot { }
 
 impl Default for Panel {
 
@@ -371,7 +400,7 @@ impl Default for Panel {
             h_ratio : 0.5,
             v_ratio : 0.5,
             dimensions : (800, 600),
-            doc : Document::new().unwrap()
+            // doc : Document::new().unwrap()
         }
     }
 
@@ -400,10 +429,28 @@ pub enum Orientation {
     Vertical
 }
 
+fn update_dims_from_env(dims : &mut (usize, usize)) {
+    if let Ok(var) = std::env::var("PLOT_DEFAULT_WIDTH") {
+        dims.0 = var.parse().unwrap();
+    }
+    if let Ok(var) = std::env::var("PLOT_DEFAULT_HEIGHT") {
+        dims.1 = var.parse().unwrap();
+    }
+}
+
 impl Panel {
+
+    pub fn dimensions(mut self, w : u32, h : u32) -> Self {
+        self.dimensions.0 = w as usize;
+        self.dimensions.1 = h as usize;
+        self.adjust_scales();
+        self
+    }
 
     pub fn single(p1 : Plot) -> Self {
         let mut panel = Self::default();
+        update_dims_from_env(&mut panel.dimensions);
+        panel.dimensions = (p1.mapper.w as usize, p1.mapper.h as usize);
         panel.plots[0] = p1;
         panel
     }
@@ -417,6 +464,7 @@ impl Panel {
         };
         group.plots[0] = p1;
         group.plots[1] = p2;
+        update_dims_from_env(&mut group.dimensions);
         group
     }
 
@@ -458,13 +506,66 @@ impl Panel {
         }
     }*/
 
+    pub fn new() -> Self {
+        Default::default()
+    }
+
     pub fn new_from_json(json : &str) -> Result<Self, String> {
 
-        // println!("Received JSON: {:?}", json);
-
         let opt_panel : Option<json::Panel> = serde_json::from_str(json).ok();
-        if let Some(panel) = opt_panel {
-            unimplemented!()
+        if let Some(mut panel_def) = opt_panel {
+
+            let mut panel : Panel = Default::default();
+            panel.plots.clear();
+
+            if panel_def.elements.len() == 1 {
+                panel.split = GroupSplit::Unique;
+            } else {
+                if panel_def.elements.len() == 2 {
+                    panel.split = GroupSplit::Vertical;
+                } else {
+                    if panel_def.elements.len() == 3 {
+                        panel.split = GroupSplit::ThreeTop;
+                    } else {
+                        if panel_def.elements.len() == 4 {
+                            panel.split = GroupSplit::Four;
+                        } else {
+                            return Err(format!("Invalid number of plots informed"));
+                        }
+                    }
+                }
+            }
+
+            for plot_def in panel_def.elements.drain(..) {
+                let plot = Plot::new_from_json(plot_def)
+                    .map_err(|e| format!("Error parsing area from JSON definition = {}", e) )?;
+                panel.plots.push(plot);
+            }
+
+            if let Some(design) = panel_def.design {
+                panel.design = PlotDesign::new_from_json(design)
+                    .map_err(|e| format!("{}", e) )?;
+            }
+
+            if let Some(layout) = panel_def.layout {
+                panel.dimensions = (layout.width as usize, layout.height as usize);
+                panel.h_ratio = layout.horizontal_ratio;
+                panel.v_ratio = layout.vertical_ratio;
+                if let Some(split) = &layout.split {
+                    let split = GroupSplit::from_str(split)
+                        .map_err(|_| format!("Invalid split: {}", split))?;
+                    if n_plots_for_split(&panel.split) == panel.plots.len() {
+                        panel.split = split;
+                    } else {
+                        // Do not set user-defined split property in case it was miss-specified, use
+                        // the default for the given number of plots informed.
+                    }
+                }
+            }
+
+            assert!(panel.plots.len() == n_plots_for_split(&panel.split), "N plots = {}; split = {:?}", panel.plots.len(), panel.split);
+
+            Ok(panel)
         } else {
             let mut plot : json::Plot = serde_json::from_str(json)
                 .map_err(|e| format!("Error parsing plot = {}", e) )?;
@@ -481,12 +582,12 @@ impl Panel {
                 h_ratio : layout_json.horizontal_ratio,
                 v_ratio : layout_json.vertical_ratio,
                 dimensions : (layout_json.width as usize, layout_json.height as usize),
-                doc : Document::new().unwrap()
+                // doc : Document::new().unwrap()
             })
         }
     }
 
-    pub fn new(layout_path : String) -> Result<Self, String> {
+    /*pub fn new(layout_path : String) -> Result<Self, String> {
         let plots = Vec::new();
         let mut parser : Parser = Default::default();
         let doc = parser.parse_file(&layout_path)
@@ -527,7 +628,7 @@ impl Panel {
         };
         plot_group.load_layout(layout_path)?;
         Ok(plot_group)
-    }
+    }*/
 
     /*pub fn update_text_mapping_with_adjustment(&mut self, active : usize, key : &str, pos : Vec<Vec<f64>>, text : Vec<String>, adj : Adjustment) {
         match self.update_mapping(active, &key, &pos) {
@@ -561,7 +662,7 @@ impl Panel {
         self.plots.iter_mut().for_each(|pl| pl.adjust_scales() );
     }
 
-    pub fn set_dimensions(&mut self, opt_w : Option<usize>, opt_h : Option<usize>) {
+    /*pub fn set_dimensions(&mut self, opt_w : Option<usize>, opt_h : Option<usize>) {
         let root = self.doc.get_root_element().unwrap();
         let dim_node = root
             .findnodes("object[@class='dimensions']")
@@ -595,7 +696,7 @@ impl Panel {
             self.dimensions.1 = h;
             set_new(&dim_node, "height", h);
         }
-    }
+    }*/
 
     pub fn clear_all_data(&mut self) {
         for area in self.plots.iter_mut() {
@@ -603,17 +704,66 @@ impl Panel {
         }
     }
 
+    pub fn png(&mut self) -> Result<Vec<u8>, Box<dyn Error>> {
+        let surf = ImageSurface::create(
+            Format::ARgb32,
+            self.dimensions.0 as i32,
+            self.dimensions.1 as i32,
+        )?;
+        let ctx = Context::new(&surf) /*.unwrap()*/ ;
+        self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
+        let mut buf = Vec::new();
+        surf.write_to_png(&mut buf)?;
+        Ok(buf)
+    }
+
+    pub fn html_img_tag(&mut self) -> Result<String, Box<dyn Error>> {
+        let png = self.png()?;
+        Ok(format!("<img src='data:image/png;base64,{}' />", base64::encode(png)))
+    }
+
     pub fn svg(&mut self) -> Result<String, Box<dyn Error>> {
-        let mut buf : Vec<u8> = Vec::new();
+        let mut svg_buf : Vec<u8> = Vec::new();
         let surf = SvgSurface::for_stream(
             self.dimensions.0 as f64,
             self.dimensions.1 as f64,
-            buf
+            svg_buf
         ).map_err(|e| format!("Error creating SVG surface: {}", e) )?;
+
         let ctx = Context::new(&surf) /*.unwrap()*/ ;
         self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
+
         let stream = surf.finish_output_stream().unwrap();
+
+        /*
+        Requires 14.0
+        match surf.status() {
+            Ok(_) => {
+
+            },
+            Err(e) => {
+                panic!("Surface error: {}", e);
+            }
+        }*/
+        surf.flush();
+
         Ok(String::from_utf8(stream.downcast_ref::<Vec<u8>>().unwrap().clone())?)
+    }
+
+    pub fn show_with_eog(&mut self) -> Result<(), Box<dyn Error>> {
+        self.show_with_app("eog")
+    }
+
+    /// Shows plot by saving it at a tempfile and opening with the
+    /// informed application, which is assumed to receive the tempfile
+    /// path as first argument.
+    pub fn show_with_app(&mut self, app : &str) -> Result<(), Box<dyn Error>> {
+        let tf = tempfile::NamedTempFile::new()?;
+        let path = tf.path();
+        Command::new(app)
+            .args(&[path.to_str().unwrap()])
+            .output()?;
+        Ok(())
     }
 
     pub fn draw_to_file(&mut self, path : &str) -> Result<(), String> {
@@ -688,7 +838,9 @@ impl Panel {
         let top_right = (w as f64 * self.h_ratio, 0.05);
         let bottom_left = (0.05, h as f64 * self.v_ratio);
         let bottom_right = (w as f64 * self.h_ratio, h as f64 * self.v_ratio);
-        for (i, plot) in self.plots.iter_mut().enumerate() {
+
+        // The plot context mapper is re-set here, so plot must be mutably-borrowed
+        for (i, mut plot) in self.plots.iter_mut().enumerate() {
             let origin_offset = match (&self.split, i) {
                 (GroupSplit::Horizontal, 1) => top_right,
                 (GroupSplit::Vertical, 1) => bottom_left,
@@ -754,16 +906,16 @@ impl Panel {
         //println!("--");
     }
 
-    pub fn reload_layout_data(&mut self) -> Result<(), Box<dyn Error>> {
+    /*pub fn reload_layout_data(&mut self) -> Result<(), Box<dyn Error>> {
         let _root_el = self.doc.get_root_element()
             .expect("Root node not found");
         // for plot in self.plots.iter_mut() {
         //    plot.reload_layout_node( /*node.clone()*/ )?;
         // }
         Ok(())
-    }
+    }*/
 
-    pub fn update_after_parsed_content(&mut self) -> Result<(), String> {
+    /*pub fn update_after_parsed_content(&mut self) -> Result<(), String> {
 
         use GroupSplit::*;
 
@@ -838,24 +990,24 @@ impl Panel {
         }
         // println!("h: {}; v : {}; split: {:?}", self.h_ratio, self.v_ratio, self.split);
         Ok(())
-    }
+    }*/
 
-    pub fn load_layout_from_string(&mut self, content : String) -> Result<(), String> {
+    /*pub fn load_layout_from_string(&mut self, content : String) -> Result<(), String> {
         let mut parser : Parser = Default::default();
         self.doc = parser.parse_string(content)
             .map_err(|e| format!("Failed parsing XML: {}", e) )?;
         self.update_after_parsed_content()
-    }
+    }*/
 
-    pub fn load_layout(&mut self, path : String) -> Result<(), String> {
+    /*pub fn load_layout(&mut self, path : String) -> Result<(), String> {
         // TODO falling here when closing connection to SQLite database
         let mut parser : Parser = Default::default();
         self.doc = parser.parse_file(&path)
             .map_err(|e| format!("Failed parsing XML: {}", e) )?;
         self.update_after_parsed_content()
-    }
+    }*/
 
-    pub fn save_layout(&self, path : String) {
+    /*pub fn save_layout(&self, path : String) {
         // let content = self.get_layout_as_text();
         match File::create(path) {
             Ok(mut f) => {
@@ -872,15 +1024,15 @@ impl Panel {
         }
         //self.doc.save_file(&path)
         //    .expect("Could not save file");
-    }
+    }*/
 
-    pub fn get_layout_as_text(&self) -> String {
+    /*pub fn get_layout_as_text(&self) -> String {
         let mut opts : SaveOptions = Default::default();
         opts.format = true;
         opts.non_significant_whitespace = true;
         //self.doc.to_string(opts)
         self.doc.to_string_with_options(opts)
-    }
+    }*/
 
     /*pub fn update_design_directly(&mut self, prop : &str, val : &str) {
         /*match prop {
@@ -891,7 +1043,7 @@ impl Panel {
         }*/
     }*/
 
-    pub fn update_design(&mut self, property : &str, value : &str) {
+    /*pub fn update_design(&mut self, property : &str, value : &str) {
         // println!("Updating design at {} to {}", property, value);
         if property.is_empty() || value.is_empty() {
             // println!("Informed empty property!");
@@ -917,7 +1069,7 @@ impl Panel {
             },
             _ => { println!("Failed at finding property {}", property); }
         }
-    }
+    }*/
 
     pub fn update_plot_property(&mut self, ix: usize, property : &str, value : &str) {
         // println!("Updating {} at {} to {}", ix, property, value);
@@ -943,7 +1095,7 @@ impl Panel {
         self.plots[ix].update_source(id, source)
     }
 
-    pub fn add_mapping(
+    /*pub fn add_mapping(
         &mut self,
         ix : usize,
         mapping_index : String,
@@ -952,7 +1104,7 @@ impl Panel {
         col_names : Vec<String>
     ) -> Result<(), String> {
         self.plots[ix].add_mapping(mapping_index, mapping_type, mapping_source, col_names, &self.doc)
-    }
+    }*/
 
     pub fn ordered_col_names(&self, ix : usize, id : &str) -> Vec<(String, String)> {
         self.plots[ix].mapping_column_names(id)
@@ -1047,7 +1199,7 @@ impl Panel {
         }
     }
 
-    pub fn dimensions(&self) -> (u32, u32) {
+    pub fn view_dimensions(&self) -> (u32, u32) {
         (self.dimensions.0 as u32, self.dimensions.1 as u32)
     }
 
@@ -1107,7 +1259,7 @@ impl error::Error for PlotError {
 
 impl showable::Show for Plot {
     fn show(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", Panel::single(self.clone()).svg().unwrap())
+        write!(f, "{}", self.wrap().svg().unwrap())
     }
 
     fn modality(&self) -> showable::Modality {
@@ -1127,12 +1279,26 @@ impl showable::Show for Panel {
 
 impl Plot {
 
+    // This only makes sense if we have a single plot that will be promptly
+    // wrappen into a panel for drawing only. All dimensions are overwrritten
+    // when we wrap multiple plots into a planel according to the plot split logic
+    // (a step done at the drawing stage).
+    pub fn dimensions(mut self, w : u32, h : u32) -> Self {
+        self.mapper.update_dimensions(w as i32, h as i32);
+        self.adjust_scales();
+        self
+    }
+
+    pub fn wrap(&self) -> Panel {
+        Panel::single(self.clone())
+    }
+
     pub fn svg(&self) -> String {
-        Panel::single(self.clone()).svg().unwrap()
+        self.wrap().svg().unwrap()
     }
 
     pub fn draw_to_file(&self, path : &str) -> Result<(), String> {
-        Panel::single(self.clone()).draw_to_file(path)
+        self.wrap().draw_to_file(path)
     }
 
     pub fn scale_x(mut self, scale : Scale) -> Self {
@@ -1171,22 +1337,36 @@ impl Plot {
     }
 
     pub fn adjust_scales(&mut self) {
-        if let Some(((new_xmin, new_xmax), (new_ymin, new_ymax))) = self.max_data_limits() {
+        if let Some(((new_xmin, mut new_xmax), (new_ymin, mut new_ymax))) = self.max_data_limits() {
+
+            let min_x_spacing = self.x.n_intervals as f64 * std::f64::EPSILON;
+            let min_y_spacing = self.y.n_intervals as f64 * std::f64::EPSILON;
+
+            // Plots with extension zero are not valid - We hard-set the smallest possible difference,
+            // or else the scale drawing will be messed up. This might happen if the user provide a single
+            // data point for the mapping, in which case xmax == xmin. Each grid point must be distant by at least EPS.
+            if (new_xmax - new_xmin).abs() < min_x_spacing {
+                new_xmax = new_xmin + min_x_spacing;
+            }
+            if (new_ymax - new_ymin).abs() < min_y_spacing {
+                new_ymax = new_ymin + min_y_spacing;
+            }
+
             // println!("Data limits = {:?}", (new_xmin, new_xmax, new_ymin, new_ymax));
             let (x_adj, y_adj) = (self.x.adj, self.y.adj);
             // println!("Adjustments = {:?}", (x_adj, y_adj));
             scale::adjust_segment(&mut self.x, x_adj, new_xmin, new_xmax);
             scale::adjust_segment(&mut self.y, y_adj, new_ymin, new_ymax);
             self.mapper.update_data_extensions(self.x.from, self.x.to, self.y.from, self.y.to);
-            println!("{:?}", self.mapper);
+            // println!("{:?}", self.mapper);
         } else {
-            println!("Could not retrieve data limits");
+            // println!("Could not retrieve data limits");
         }
     }
 
     pub fn new_from_json(mut rep : json::Plot) -> Result<Plot, Box<dyn Error>> {
 
-        println!("JSON rep: {:?}", rep);
+        // println!("JSON rep: {:?}", rep);
 
         let mut mappings = Vec::new();
 
@@ -1227,7 +1407,14 @@ impl Plot {
     }
 
     pub fn new() -> Self {
-        Default::default()
+        let mut pl : Plot = Default::default();
+        if let Ok(var) = std::env::var("PLOT_DEFAULT_WIDTH") {
+            pl.mapper.w = var.parse().unwrap();
+        }
+        if let Ok(var) = std::env::var("PLOT_DEFAULT_HEIGHT") {
+            pl.mapper.h = var.parse().unwrap();
+        }
+        pl
     }
 
     pub fn new_from_node(node : Node) -> Plot {
@@ -1243,7 +1430,7 @@ impl Plot {
     }*/
 
     fn draw_plot(&mut self, ctx: &Context, design : &PlotDesign, w : i32, h : i32) {
-        println!("Drawn plot : {:?}", self);
+        // println!("Drawn plot : {:?}", self);
         self.mapper.update_dimensions(w, h);
         // If frozen, do not redraw background/grid.
         // Draw only frozen mapping increment.
@@ -1262,7 +1449,7 @@ impl Plot {
         let mut x_lims = Vec::new();
         let mut y_lims = Vec::new();
         for (xl, yl) in self.mappings.iter().filter_map(|m| m.data_limits() ) {
-            println!("{:?}", (xl, yl));
+            // println!("{:?}", (xl, yl));
             x_lims.push(xl);
             y_lims.push(yl);
         }
@@ -1361,7 +1548,7 @@ impl Plot {
         Ok(())
     }
 
-    fn new_base_mapping_node(
+    /*fn new_base_mapping_node(
         &self,
         mapping_type : &str,
         mapping_index : &str,
@@ -1503,7 +1690,7 @@ impl Plot {
         //}
 
         Ok(())
-    }
+    }*/
 
     fn accomodate_dimension(
         &mut self,
@@ -2063,7 +2250,7 @@ pub mod utils {
         prop_hash
     }
 
-    pub fn populate_node_with_hash(
+    /*pub fn populate_node_with_hash(
         doc : &Document,
         node : &mut Node,
         hash : HashMap<String, String>
@@ -2105,9 +2292,44 @@ pub mod utils {
         if n_changed != n_required {
             println!("Changed only {} nodes (of {} required)", n_changed, n_required);
         }
+    }*/
+
+}
+
+/*#[no_mangle]
+pub extern "C" fn interactive(engine : &mut interactive::Engine) {
+    engine.register_type::<Panel>()
+        .register_fn("new_panel", Panel::new )
+        .register_fn("show", |panel : &mut Panel| { panel.show_with_eog().unwrap() });
+}*/
+
+// nm -gD target/debug/libplots.so
+#[cfg(feature="interactive")]
+impl interactive::Interactive for Panel {
+
+    #[export_name="register_panel"]
+    extern "C" fn interactive(engine : &mut interactive::Engine) {
+
+        engine.register_fn("do_thing", Box::new(|a : i64| -> i64 { a }));
+        println!("Symbols loaded from client lib");
+
+        //engine.register_type::<Panel>()
+        //    .register_fn("new_panel", Box::new(move || Panel::new ) )
+        //    .register_fn("show", Box::new(move |panel : &mut Panel| { panel.show_with_eog().unwrap() }) );
     }
 
 }
+
+/*impl interactive::Interactive for Plot {
+
+    #[export_name="register_plot"]
+    extern "C" fn interactive(engine : &mut interactive::Engine) {
+        /*engine.register_type::<Panel>()
+            .register_fn("new_panel", Panel::new )
+            .register_fn("show", |panel : &mut Panel| { panel.show_with_eog().unwrap() });*/
+    }
+
+}*/
 
 //impl IsA<gtk::DrawingArea> for PlotView {
 //}
