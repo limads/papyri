@@ -28,6 +28,7 @@ use either::Either;
 use text::FontData;
 use std::process::Command;
 use tempfile;
+use std::fs;
 
 pub mod mappings;
 
@@ -256,8 +257,8 @@ fn n_plots_for_split(split : &GroupSplit) -> usize {
     match split {
         GroupSplit::Unique => 1,
         GroupSplit::Vertical | GroupSplit::Horizontal => 2,
-        GroupSplit::Four => 4,
         GroupSplit::ThreeLeft | GroupSplit::ThreeTop | GroupSplit::ThreeRight | GroupSplit::ThreeBottom => 3,
+        GroupSplit::Four => 4,
     }
 }
 
@@ -758,10 +759,14 @@ impl Panel {
     /// informed application, which is assumed to receive the tempfile
     /// path as first argument.
     pub fn show_with_app(&mut self, app : &str) -> Result<(), Box<dyn Error>> {
-        let tf = tempfile::NamedTempFile::new()?;
+        let mut tf = tempfile::NamedTempFile::new()?;
+        let png = self.png()?;
+        tf.write_all(&png)?;
         let path = tf.path();
+        let new_path = format!("{}.png", path.to_str().unwrap());
+        fs::rename(path, new_path.clone()).unwrap();
         Command::new(app)
-            .args(&[path.to_str().unwrap()])
+            .args(&[&new_path])
             .output()?;
         Ok(())
     }
@@ -1337,6 +1342,7 @@ impl Plot {
     }
 
     pub fn adjust_scales(&mut self) {
+
         if let Some(((new_xmin, mut new_xmax), (new_ymin, mut new_ymax))) = self.max_data_limits() {
 
             let min_x_spacing = self.x.n_intervals as f64 * std::f64::EPSILON;
@@ -1352,13 +1358,11 @@ impl Plot {
                 new_ymax = new_ymin + min_y_spacing;
             }
 
-            // println!("Data limits = {:?}", (new_xmin, new_xmax, new_ymin, new_ymax));
             let (x_adj, y_adj) = (self.x.adj, self.y.adj);
-            // println!("Adjustments = {:?}", (x_adj, y_adj));
             scale::adjust_segment(&mut self.x, x_adj, new_xmin, new_xmax);
             scale::adjust_segment(&mut self.y, y_adj, new_ymin, new_ymax);
             self.mapper.update_data_extensions(self.x.from, self.x.to, self.y.from, self.y.to);
-            // println!("{:?}", self.mapper);
+
         } else {
             // println!("Could not retrieve data limits");
         }
@@ -2303,20 +2307,93 @@ pub extern "C" fn interactive(engine : &mut interactive::Engine) {
         .register_fn("show", |panel : &mut Panel| { panel.show_with_eog().unwrap() });
 }*/
 
+// fn module_func(a : i64) -> Result<i64, Box<interactive::EvalAltResult>> {
+//    Ok(a)
+// }
+
 // nm -gD target/debug/libplots.so
 #[cfg(feature="interactive")]
 impl interactive::Interactive for Panel {
+
+    /*#[export_name="panel_module"]
+    extern "C" fn module() -> Box<interactive::Module> {
+
+        // use rhai::func::register::*;
+
+        let mut m = interactive::Module::new();
+        let hash = m.set_native_fn("module_func", Box::new(|a : i64| -> Result<i64, Box<interactive::EvalAltResult>> { Ok(a) }));
+        println!("Inserted hash: {}", hash);
+        // m.set_native_fn("module_func", module_func);
+        Box::new(m)
+    }
 
     #[export_name="register_panel"]
     extern "C" fn interactive(engine : &mut interactive::Engine) {
 
         engine.register_fn("do_thing", Box::new(|a : i64| -> i64 { a }));
+        engine.register_fn("do_nothing", Box::new(|| { println!("Do nothing") }));
+
         println!("Symbols loaded from client lib");
+        println!("Type id at client: {:?}", std::any::TypeId::of::<i64>());
+
+        println!("Calling from client: {:?}", engine.eval::<i64>("do_thing(44)"));
+        println!("Calling do_nothing from client: {:?}", engine.eval::<()>("do_nothing()"));
 
         //engine.register_type::<Panel>()
         //    .register_fn("new_panel", Box::new(move || Panel::new ) )
         //    .register_fn("show", Box::new(move |panel : &mut Panel| { panel.show_with_eog().unwrap() }) );
+    }*/
+
+    // fn display(engine : &mut interactive::Engine) {
+    //      By implementing:
+    //      engine.register_fn("to_string",	|x: &mut T| -> String)
+    //      engine.register_fn("to_debug",	|x: &mut T| -> String	format!("{:?}", x)
+    //      The custom functionality will be available: type.print(); type.debug(); "" + type; type + "", "" += type;
+    // }
+
+    // Initializer function - By using a function pointer, we guarantee it will be called only once,
+    // no matter how many types we register from this module.
+    // let mut module = Module::new();
+    // module.set_native_fn("inc", |x: i64| {
+    // fn init() -> fn(&mut Engine) {
+    //    let mut resolver = StaticModuleResolver::new();
+    //    resolver.insert("module_name", module);
+    //    Perhaps if we insert each type as a static module (e.g. module "Panel",
+    //    and make them readily avaiable, we can use them as if they were associated functions.
+    //    q::answer + 1
+    // }
+    // engine.set_module_resolver(resolver);
+
+    fn fields(engine : &mut interactive::Engine) {
+        /*register_get_set("field")
+            |panel| panel.field
+            |panel, value| panel.field = value*/
+
+
+        // register_indexer_get_set
+        // getter: Fn(&mut T, X) -> V
+        // setter: Fn(&mut T, X, V) Where X is an indexer type.
     }
+
+    fn methods(engine : &mut interactive::Engine) {
+
+        use interactive::Module;
+
+        engine
+            .register_fn("new_panel", Box::new(move || Panel::new() ) )
+            .register_fn("show", Box::new(move |panel : &mut Panel| { panel.show_with_eog().unwrap() }) );
+
+        let mut module = Module::new();
+        let hash = module.set_native_fn("create", move || Ok(Panel::new()) );
+        module.update_fn_metadata(hash, &["Panel"]);
+
+        engine.register_static_module("Panel", module.into());
+    }
+
+    // Perhaps we abstract certain details away,
+    // and just require the registration of "associated" and "methods",
+    // automatically taking care of the plumbing without exposing the engine
+    // to the user.
 
 }
 

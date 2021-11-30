@@ -12,7 +12,9 @@ use std::str::FromStr;
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum Adjustment {
     Tight,
+
     Round,
+
     Off
 }
 
@@ -171,7 +173,7 @@ impl Scale {
         let adj : Adjustment = if let Some(adj) = rep.adjust {
             adj.parse().ok()?
         } else {
-            Adjustment::Off
+            Adjustment::Tight
         };
         Some(Self::new_full(rep.label, rep.precision, rep.from, rep.to, rep.n_intervals, rep.log, rep.invert, rep.offset, adj))
     }
@@ -215,11 +217,9 @@ impl Scale {
 pub fn adjust_segment(seg : &mut Scale, adj : Adjustment, data_min : f64, data_max : f64) {
     match adj {
         Adjustment::Tight => {
-            // println!("Tight adjustment applied");
             *seg = seg.clone().extension(data_min, data_max);
         },
         Adjustment::Round => {
-            // println!("Rounded adjustment applied");
             let (ideal_min, ideal_max) = context_mapper::round_to_most_extreme(data_min, data_max);
             let (curr_min, curr_max) = (seg.from, seg.to);
             let ampl = (data_max - data_min).abs();
