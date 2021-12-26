@@ -1,10 +1,10 @@
-use libxml::tree::node::Node;
-use gdk::RGBA;
+// use libxml::tree::node::Node;
+use gdk4::RGBA;
 use cairo::Context;
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
 // use std::f64::consts::PI;
-use super::utils;
+// use super::utils;
 // use super::super::context_mapper::Coord2D;
 // use cairo::ScaledFont;
 // use super::super::text::{FontData, draw_label};
@@ -58,7 +58,7 @@ impl AreaMapping {
         area
     }
 
-    pub fn new(node : &Node) -> Result<Self, String> {
+    /*pub fn new(node : &Node) -> Result<Self, String> {
         let x = Vec::<f64>::new();
         let ymin = Vec::<f64>::new();
         let ymax = Vec::<f64>::new();
@@ -77,7 +77,7 @@ impl AreaMapping {
         let mut mapping = AreaMapping{ x, ymin, ymax, color, col_names, source };
         mapping.update_layout(node)?;
         Ok(mapping)
-    }
+    }*/
 
     pub fn draw_bound<'a>(
         pts : impl Iterator<Item = ((&'a f64, &'a f64), (&'a f64, &'a f64))>,
@@ -140,10 +140,10 @@ impl Mapping for AreaMapping {
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
         ctx.save();
         ctx.set_source_rgba(
-            self.color.red,
-            self.color.green,
-            self.color.blue,
-            self.color.alpha
+            self.color.red.into(),
+            self.color.green.into(),
+            self.color.blue.into(),
+            self.color.alpha.into()
         );
         ctx.set_fill_rule(cairo::FillRule::Winding);
         if self.x.len() == 0 {
@@ -184,7 +184,7 @@ impl Mapping for AreaMapping {
         self.ymax = values[2].clone();
     }
 
-    fn update_layout(&mut self, node : &Node) -> Result<(), String> {
+    /*fn update_layout(&mut self, node : &Node) -> Result<(), String> {
         let props = utils::children_as_hash(node, "property");
         self.color = props.get("color")
             .ok_or(format!("Color property not found"))?
@@ -207,7 +207,7 @@ impl Mapping for AreaMapping {
             .ok_or(format!("Source property not found"))?
             .clone();
         Ok(())
-    }
+    }*/
 
     fn properties(&self) -> HashMap<String, String> {
         let mut properties = MappingType::Area.default_hash();

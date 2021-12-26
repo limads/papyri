@@ -1,10 +1,10 @@
-use libxml::tree::node::Node;
-use gdk::RGBA;
+// use libxml::tree::node::Node;
+use gdk4::RGBA;
 use cairo::Context;
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
 use std::f64::consts::PI;
-use super::utils;
+// use super::utils;
 use super::*;
 use std::cmp::*;
 use std::str::FromStr;
@@ -59,7 +59,7 @@ impl ScatterMapping {
         scatter
     }
 
-    pub fn new(node : &Node) -> Result<Self,String> {
+    /*pub fn new(node : &Node) -> Result<Self,String> {
         let color = RGBA::black();
         let radius = 1.0;
         let x = Vec::<f64>::new();
@@ -72,7 +72,7 @@ impl ScatterMapping {
         let mut mapping = ScatterMapping{color, x, y, radius, col_names, source};
         mapping.update_layout(node)?;
         Ok(mapping)
-    }
+    }*/
 }
 
 impl Mapping for ScatterMapping {
@@ -113,10 +113,10 @@ impl Mapping for ScatterMapping {
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
         ctx.save();
         ctx.set_source_rgba(
-            self.color.red,
-            self.color.green,
-            self.color.blue,
-            self.color.alpha
+            self.color.red.into(),
+            self.color.green.into(),
+            self.color.blue.into(),
+            self.color.alpha.into()
         );
         for (x, y) in self.x.iter().zip(self.y.iter()) {
             if mapper.check_bounds(*x, *y) {
@@ -141,7 +141,7 @@ impl Mapping for ScatterMapping {
         // println!("Mapping has no extra data");
     }
 
-    fn update_layout(&mut self, node : &Node) -> Result<(), String> {
+    /*fn update_layout(&mut self, node : &Node) -> Result<(), String> {
         let props = utils::children_as_hash(node, "property");
         self.color = props.get("color")
             .ok_or(format!("color property not found"))?
@@ -161,7 +161,7 @@ impl Mapping for ScatterMapping {
             .ok_or(format!("Source property not found"))?
             .clone();
         Ok(())
-    }
+    }*/
 
     fn properties(&self) -> HashMap<String, String> {
         let mut properties = MappingType::Scatter.default_hash();

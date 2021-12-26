@@ -1,15 +1,15 @@
 use cairo::Context;
-use libxml::tree::document::{Document, SaveOptions};
-use libxml::parser::Parser;
-use libxml::tree::node::Node;
+// use libxml::tree::document::{Document, SaveOptions};
+// use libxml::parser::Parser;
+// use libxml::tree::node::Node;
 use std::default::Default;
 use std::collections::HashMap;
 use std::error::Error;
-use std::rc::*;
-use std::cell::*;
+// use std::rc::*;
+// use std::cell::*;
 use std::result::Result;
 use std::io::{ErrorKind, Write};
-use mappings::area::*;
+// use mappings::area::*;
 use mappings::*;
 use context_mapper::{ContextMapper, Coord2D};
 pub use scale::*;
@@ -24,7 +24,7 @@ use std::path::Path;
 use std::cmp::Ordering;
 use std::mem;
 use std::str::FromStr;
-use either::Either;
+// use either::Either;
 use text::FontData;
 use std::process::Command;
 use tempfile;
@@ -77,8 +77,8 @@ pub mod json {
 
     use serde::{Serialize, Deserialize};
     use std::default::Default;
-    use either::Either;
-    use super::Adjustment;
+    // use either::Either;
+    // use super::Adjustment;
 
     #[derive(Clone, Debug, Serialize, Deserialize)]
     pub struct Design {
@@ -711,7 +711,7 @@ impl Panel {
             self.dimensions.0 as i32,
             self.dimensions.1 as i32,
         )?;
-        let ctx = Context::new(&surf) /*.unwrap()*/ ;
+        let ctx = Context::new(&surf).unwrap();
         self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
         let mut buf = Vec::new();
         surf.write_to_png(&mut buf)?;
@@ -731,7 +731,7 @@ impl Panel {
             svg_buf
         ).map_err(|e| format!("Error creating SVG surface: {}", e) )?;
 
-        let ctx = Context::new(&surf) /*.unwrap()*/ ;
+        let ctx = Context::new(&surf).unwrap();
         self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
 
         let stream = surf.finish_output_stream().unwrap();
@@ -786,7 +786,7 @@ impl Panel {
                     self.dimensions.1 as f64,
                     Some(path)
                 ).map_err(|e| format!("Error creating SVG surface: {}", e) )?;
-                let ctx = Context::new(&surf) /*.unwrap()*/ ;
+                let ctx = Context::new(&surf).unwrap();
                 self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
             },
             Some("png") => {
@@ -795,7 +795,7 @@ impl Panel {
                     self.dimensions.0 as i32,
                     self.dimensions.1 as i32,
                 ).map_err(|e| format!("Error creating PNG image surface: {}", e) )?;
-                let ctx = Context::new(&surf) /*.unwrap()*/ ;
+                let ctx = Context::new(&surf).unwrap();
                 // ctx.scale(3.0, 3.0);
                 self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
                 let mut f = File::create(path).map_err(|e| format!("Unable to open PNG file:{}", e))?;
@@ -809,7 +809,7 @@ impl Panel {
                     path
                 ).map_err(|e| format!("Error creating Postscript surface: {}", e) )?;
                 surf.set_eps(true);
-                let ctx = Context::new(&surf) /*.unwrap()*/ ;
+                let ctx = Context::new(&surf).unwrap();
                 self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
             },
             Some(other) => {
@@ -1076,12 +1076,12 @@ impl Panel {
         }
     }*/
 
-    pub fn update_plot_property(&mut self, ix: usize, property : &str, value : &str) {
+    /*pub fn update_plot_property(&mut self, ix: usize, property : &str, value : &str) {
         // println!("Updating {} at {} to {}", ix, property, value);
         if let Err(e) = self.plots[ix].update_layout(property, value) {
             println!("{}", e);
         }
-    }
+    }*/
 
     pub fn update_mapping(&mut self, ix : usize, id : &str, data : &Vec<Vec<f64>>) -> Result<(), Box<dyn Error>> {
         // println!("Updating {} at {} to {:?}", ix, id, data);
@@ -1115,11 +1115,11 @@ impl Panel {
         self.plots[ix].mapping_column_names(id)
     }
 
-    pub fn remove_mapping(&mut self, ix : usize, id : &str) {
+   /*pub fn remove_mapping(&mut self, ix : usize, id : &str) {
         if let Err(e) = self.plots[ix].remove_mapping(id) {
             println!("{}", e);
         }
-    }
+    }*/
 
     pub fn scale_info(&self, ix : usize, scale : &str) -> HashMap<String, String> {
         self.plots[ix].scale_info(scale)
@@ -1154,7 +1154,7 @@ impl Panel {
         }
     }
 
-    pub fn reassign_plot(
+    /*pub fn reassign_plot(
         &mut self,
         src_plot : usize,
         src_ix : &str,
@@ -1175,7 +1175,7 @@ impl Panel {
         } else {
             Err(format!("Invalid destination plot"))
         }
-    }
+    }*/
 
     // Number of mappings, for each plot
     pub fn n_mappings(&self) -> Vec<usize> {
@@ -1217,7 +1217,7 @@ pub struct Plot {
     x : Scale,
     y : Scale,
     frozen : bool,
-    node : Node
+    // node : Node
 }
 
 impl Default for Plot {
@@ -1227,7 +1227,7 @@ impl Default for Plot {
         let x : Scale = Default::default();
         let y : Scale = Default::default();
         let frozen = false;
-        Plot{ mappings, mapper, x, y, frozen, node : Node::null() }
+        Plot{ mappings, mapper, x, y, frozen, /*node : Node::null()*/ }
     }
 }
 
@@ -1399,7 +1399,7 @@ impl Plot {
             x,
             y,
             frozen : false,
-            node : Node::null()
+            // node : Node::null()
         };
         area.adjust_scales();
 
@@ -1421,13 +1421,13 @@ impl Plot {
         pl
     }
 
-    pub fn new_from_node(node : Node) -> Plot {
+    /*pub fn new_from_node(node : Node) -> Plot {
 
         // if let Err(e) = pl_area.reload_layout_data() {
         //   println!("Error when reloading layout data: {}", e.description());
         // }
         Default::default()
-    }
+    }*/
 
     /*fn save(&self, path : String, w : i32, h : i32) {
 
@@ -1493,7 +1493,7 @@ impl Plot {
             label, precision, from, to, nint, log, invert, offset, Adjustment::Off) )
     }
 
-    /// Reloads all mappings from XML definition,
+    /*/// Reloads all mappings from XML definition,
     /// clearing any existent data.
     pub fn reload_mappings(&mut self) -> Result<(),String> {
         // let root = self.doc.get_root_element()
@@ -1527,9 +1527,9 @@ impl Plot {
         } else {
             Err(format!("Error finding mapping nodes"))
         }
-    }
+    }*/
 
-    /// Parses the XML file definition at self.doc
+    /*/// Parses the XML file definition at self.doc
     /// and updates all layout information used for plotting.
     /// Does not mess with mapping data.
     pub fn reload_layout_node(&mut self /*, node : Node*/ ) -> Result<(), Box<dyn Error>> {
@@ -1550,7 +1550,7 @@ impl Plot {
             self.y.from, self.y.to, self.x.log, self.y.log,
             self.x.invert, self.y.invert);
         Ok(())
-    }
+    }*/
 
     /*fn new_base_mapping_node(
         &self,
@@ -1718,22 +1718,22 @@ impl Plot {
             }
         });
         if new_min < old_min {
-            let ans = self.update_layout(
+            /*let ans = self.update_layout(
                 &format!("object[@name='{}']/property[@name='from']", dim_name)[..],
                 &new_min.to_string()
             );
             if let Err(e) = ans {
                 println!("{}", e);
-            }
+            }*/
         }
         if new_max > old_max {
-            let ans = self.update_layout(
+            /*let ans = self.update_layout(
                 &format!("object[@name='{}']/property[@name='to']", dim_name)[..],
                 &new_max.to_string()
             );
             if let Err(e) = ans {
                 println!("{}", e);
-            }
+            }*/
         }
     }
 
@@ -1763,7 +1763,7 @@ impl Plot {
         }
     }
 
-    pub fn remove_mapping(&mut self, id : &str) -> Result<(Box<dyn Mapping>, Node), String> {
+    /*pub fn remove_mapping(&mut self, id : &str) -> Result<(Box<dyn Mapping>, Node), String> {
         let n = self.mappings.len();
         let pos = id.parse::<usize>().map_err(|e| format!("Node id is not an integer: {}", id))?;
         //let mut root = self.doc.get_root_element().expect("No root at remove");
@@ -1791,7 +1791,7 @@ impl Plot {
         // }
         // println!("Mapping {} removed successfully", id);
         Ok((mapping, node.clone()))
-    }
+    }*/
 
     pub fn update_mapping_text(
         &mut self,
@@ -1832,7 +1832,7 @@ impl Plot {
         }*/
     }
 
-    /* Given a resolvable full path to a property, update it. */
+    /*/* Given a resolvable full path to a property, update it. */
     pub fn update_layout(&mut self, property : &str, value : &str) -> Result<(), String> {
         // let root = self.doc.get_root_element().expect("No root");
         // println!("{} : {}", property, value);
@@ -1887,7 +1887,7 @@ impl Plot {
             }
         }
         Ok(())
-    }
+    }*/
 
     pub fn clear_all_data(&mut self) {
         for m in self.mappings.iter_mut() {
@@ -1938,9 +1938,10 @@ impl Plot {
         ctx.save();
         ctx.set_line_width(0.0);
         ctx.set_source_rgb(
-            design.bg_color.red,
-            design.bg_color.green,
-            design.bg_color.blue);
+            design.bg_color.red.into(),
+            design.bg_color.green.into(),
+            design.bg_color.blue.into()
+        );
         ctx.rectangle(
             0.1*(self.mapper.w as f64), 0.1*(self.mapper.h as f64),
             0.8*(self.mapper.w as f64), 0.8*(self.mapper.h as f64));
@@ -1957,9 +1958,10 @@ impl Plot {
     ) {
         ctx.save();
         ctx.set_source_rgb(
-            design.grid_color.red,
-            design.grid_color.green,
-            design.grid_color.blue);
+            design.grid_color.red.into(),
+            design.grid_color.green.into(),
+            design.grid_color.blue.into()
+        );
         ctx.move_to(from.x, from.y);
         ctx.line_to(to.x, to.y);
         ctx.stroke();
@@ -2162,9 +2164,9 @@ impl Plot {
         } else {
             println!("Mapping not found when updating column name");
         }
-        if let Err(e) = self.reload_layout_node() {
-            println!("{}", e);
-        }
+        // if let Err(e) = self.reload_layout_node() {
+        //    println!("{}", e);
+        // }
         Ok(())
     }
 
@@ -2223,7 +2225,7 @@ impl Plot {
 
 //#[repr(C)]
 
-pub mod utils {
+/*pub mod utils {
 
     use super::Node;
     use super::HashMap;
@@ -2298,7 +2300,7 @@ pub mod utils {
         }
     }*/
 
-}
+}*/
 
 /*#[no_mangle]
 pub extern "C" fn interactive(engine : &mut interactive::Engine) {
@@ -2311,11 +2313,7 @@ pub extern "C" fn interactive(engine : &mut interactive::Engine) {
 //    Ok(a)
 // }
 
-// nm -gD target/debug/libplots.so
-#[cfg(feature="interactive")]
-impl interactive::Interactive for Panel {
-
-    /*#[export_name="panel_module"]
+/*#[export_name="panel_module"]
     extern "C" fn module() -> Box<interactive::Module> {
 
         // use rhai::func::register::*;
@@ -2342,7 +2340,7 @@ impl interactive::Interactive for Panel {
         //engine.register_type::<Panel>()
         //    .register_fn("new_panel", Box::new(move || Panel::new ) )
         //    .register_fn("show", Box::new(move |panel : &mut Panel| { panel.show_with_eog().unwrap() }) );
-    }*/
+    }
 
     // fn display(engine : &mut interactive::Engine) {
     //      By implementing:
@@ -2373,21 +2371,55 @@ impl interactive::Interactive for Panel {
         // register_indexer_get_set
         // getter: Fn(&mut T, X) -> V
         // setter: Fn(&mut T, X, V) Where X is an indexer type.
-    }
+    }*/
 
-    fn methods(engine : &mut interactive::Engine) {
+/*#[cfg(feature="interactive")]
+#[export_name="register_methods"]
+extern "C" fn reg_methods(engine : &mut interactive::Engine) /*-> Box<interactive::Engine>*/ {
 
-        use interactive::Module;
+    use interactive::Module;
+    use interactive::TypeId;
+    // let mut engine = Engine::new();
 
+    engine
+        .register_fn("new_panel", Box::new(move || Panel::new() ) )
+        .register_fn("show", Box::new(move |panel : &mut Panel| { panel.show_with_eog().unwrap() }) );
+
+    let mut module = Module::new();
+    let hash = module.set_native_fn("create", move || Ok(Panel::new()) );
+    module.update_fn_metadata(hash, &["Panel"]);
+
+    engine.register_static_module("Panel", module.into());
+
+    engine.register_fn("add_integer", |a : i64| a + 1 );
+    println!("Type id of integer at client = {:?}", TypeId::of::<i64>() );
+
+    let mut m = interactive::Module::new();
+    let hash = m.set_native_fn("module_func", Box::new(|a : i64| -> Result<i64, Box<interactive::EvalAltResult>> { Ok(a + 1) }));
+    println!("Inserted hash: {}", hash);
+    engine.register_static_module("mymodule", m.into());
+
+    println!("Symbols loaded from client lib");
+
+    /*Box::new(engine)*/
+}*/
+
+/*// nm -gD target/debug/libplots.so
+#[cfg(feature="interactive")]
+impl interactive::Interactive for Panel {
+
+    #[export_name="register_methods"]
+    extern "C" fn interactive(engine : &mut interactive::Engine) -> Box<interactive::RegistrationInfo> {
+        self.display(engine);
+        self.associated(engine);
         engine
-            .register_fn("new_panel", Box::new(move || Panel::new() ) )
             .register_fn("show", Box::new(move |panel : &mut Panel| { panel.show_with_eog().unwrap() }) );
 
-        let mut module = Module::new();
-        let hash = module.set_native_fn("create", move || Ok(Panel::new()) );
-        module.update_fn_metadata(hash, &["Panel"]);
-
-        engine.register_static_module("Panel", module.into());
+        self.info()
+        // let mut module = Module::new();
+        // let hash = module.set_native_fn("create", move || Ok(Panel::new()) );
+        // module.update_fn_metadata(hash, &["Panel"]);
+        // engine.register_static_module("Panel", module.into());
     }
 
     // Perhaps we abstract certain details away,
@@ -2395,7 +2427,7 @@ impl interactive::Interactive for Panel {
     // automatically taking care of the plumbing without exposing the engine
     // to the user.
 
-}
+}*/
 
 /*impl interactive::Interactive for Plot {
 

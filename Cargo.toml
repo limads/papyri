@@ -7,20 +7,14 @@ edition = "2018"
 crate-type=["rlib", "cdylib"]
 
 [dependencies]
-# gdk = "0.14.0"
-# gdk-pixbuf = "0.14.0"
-# cairo-rs = { version = "0.14.9", features = ["svg", "png", "ps"] }
-gdk = "0.13.2"
-gdk-pixbuf = "0.9.0"
-cairo-rs = { version = "0.9.1", features = ["svg", "png", "ps"] }
-libxml = "0.2.15"
+gdk4 = "0.3"
+gdk-pixbuf = "0.14"
+# cairo-rs = {git = "https://github.com/gtk-rs/gtk-rs-core", version = "0.15", features = ["svg", "png", "ps"]}
+cairo-rs = { version = "0.14", features = ["svg", "png", "ps"] }
 either = "1.6.1"
 regex = { version = "1.4.2" }
 serde = { version="1.0.130", features=["derive"] }
 serde_json = "1.0.68"
-interactive = { path = "../interactive", optional = true }
 showable = { path = "../showable" }
 tempfile = "3.2.0"
 base64="0.13.0"
-
-

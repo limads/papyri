@@ -1,10 +1,10 @@
-use libxml::tree::node::Node;
-use gdk::RGBA;
+// use libxml::tree::node::Node;
+use gdk4::RGBA;
 use cairo::Context;
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
 // use std::f64::consts::PI;
-use super::utils;
+// use super::utils;
 // use super::super::context_mapper::Coord2D;
 // use cairo::ScaledFont;
 use super::text::{FontData, draw_label};
@@ -67,7 +67,7 @@ impl TextMapping {
         text_m
     }
 
-    pub fn new(node : &Node) -> Result<Self,String> {
+    /*pub fn new(node : &Node) -> Result<Self,String> {
         let x = Vec::<f64>::new();
         let y = Vec::<f64>::new();
         let text = Vec::<String>::new();
@@ -87,7 +87,7 @@ impl TextMapping {
         let mut mapping = TextMapping{ x, y, text, font, color, col_names, source};
         mapping.update_layout(node)?;
         Ok(mapping)
-    }
+    }*/
 
     // Calls to update_data(.) can call this
     // function to update the text before the
@@ -139,9 +139,9 @@ impl Mapping for TextMapping {
             // println!("x: {}; y: {}; t: {}", self.x.len(), self.y.len(), self.text.len());
         }
         ctx.set_source_rgb(
-            self.color.red,
-            self.color.green,
-            self.color.blue
+            self.color.red.into(),
+            self.color.green.into(),
+            self.color.blue.into()
         );
         self.font.set_font_into_context(&ctx);
         for ((x, y), t) in self.x.iter().zip(self.y.iter()).zip(self.text.iter()) {
@@ -177,7 +177,7 @@ impl Mapping for TextMapping {
         }
     }
 
-    fn update_layout(&mut self, node : &Node) -> Result<(), String> {
+    /*fn update_layout(&mut self, node : &Node) -> Result<(), String> {
         let props = utils::children_as_hash(node, "property");
         self.color = props.get("color")
             .ok_or(format!("color property not found"))?
@@ -197,7 +197,7 @@ impl Mapping for TextMapping {
             .ok_or(format!("Source property not found"))?
             .clone();
         Ok(())
-    }
+    }*/
 
     fn properties(&self) -> HashMap<String, String> {
         let mut properties = MappingType::Text.default_hash();

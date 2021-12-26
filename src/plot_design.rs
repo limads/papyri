@@ -1,6 +1,6 @@
-use gdk::RGBA;
-use libxml::tree::node::Node;
-use super::utils;
+use gdk4::RGBA;
+// use libxml::tree::node::Node;
+// use super::utils;
 use std::error::Error;
 use super::text;
 use std::collections::HashMap;
@@ -39,9 +39,9 @@ impl PlotDesign {
         })
     }
 
-    pub fn new(node : &Node) -> Result<PlotDesign, Box<dyn Error>> {
-        let design_props = utils::children_as_hash(node,"property");
-        //println!("Design = {:?}", design_props);
+    /*pub fn new( /*node : &Node*/ ) -> Result<PlotDesign, Box<dyn Error>> {
+        // let design_props = utils::children_as_hash(node,"property");
+        // println!("Design = {:?}", design_props);
         let standard_color = RGBA{red:0.0,green:0.0,blue:0.0,alpha:0.0};
         let bg_color = match design_props["bg_color"].parse() {
             Ok(c) => c,
@@ -60,7 +60,7 @@ impl PlotDesign {
             font
         };
         Ok(design)
-    }
+    }*/
 
     pub fn description(&self) -> HashMap<String, String> {
         let mut desc = HashMap::new();

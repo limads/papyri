@@ -1,9 +1,9 @@
-use libxml::tree::node::Node;
-use gdk::RGBA;
+// use libxml::tree::node::Node;
+use gdk4::RGBA;
 use cairo::Context;
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
-use super::utils;
+// use super::utils;
 use super::*;
 use std::mem;
 use super::super::MappingProperty;
@@ -108,7 +108,7 @@ impl BarMapping {
         bar
     }
 
-    pub fn new(node : &Node) -> Result<Self, String> {
+    /*pub fn new(node : &Node) -> Result<Self, String> {
         let color = gdk::RGBA{
             red: 0.0,
             green: 0.0,
@@ -138,7 +138,7 @@ impl BarMapping {
         };
         mapping.update_layout(node)?;
         Ok(mapping)
-    }
+    }*/
 
     fn adjust_bar(&mut self) {
         if self.horizontal {
@@ -189,7 +189,7 @@ impl Mapping for BarMapping {
 
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
         ctx.save();
-        ctx.set_source_rgb(self.color.red, self.color.green, self.color.blue);
+        ctx.set_source_rgb(self.color.red.into(), self.color.green.into(), self.color.blue.into());
         //println!("Received for drawing {:?} {:?} {:?} {:?}", self.x, self.y, self.w, self.h);
         let r_iter = self.x.iter().zip(self.y.iter()
             .zip(self.w.iter()
@@ -240,7 +240,7 @@ impl Mapping for BarMapping {
         // println!("Mapping has no extra data");
     }
 
-    fn update_layout(&mut self, node : &Node) -> Result<(), String> {
+    /*fn update_layout(&mut self, node : &Node) -> Result<(), String> {
         let props = utils::children_as_hash(node, "property");
         self.color = props.get("color")
             .ok_or(format!("Color property not found"))?
@@ -293,7 +293,7 @@ impl Mapping for BarMapping {
         println!("w: {:?}", self.w);
         println!("h: {:?}", self.h);*/
         Ok(())
-    }
+    }*/
 
     fn data_limits(&self) -> Option<((f64, f64), (f64, f64))> {
         let xmin = self.x.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;

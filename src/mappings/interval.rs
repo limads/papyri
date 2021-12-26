@@ -1,9 +1,9 @@
-use libxml::tree::node::Node;
-use gdk::RGBA;
+// use libxml::tree::node::Node;
+use gdk4::RGBA;
 use cairo::Context;
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
-use super::utils;
+// use super::utils;
 use super::*;
 use std::cmp::*;
 use std::default::Default;
@@ -83,7 +83,7 @@ impl IntervalMapping {
         intv
     }
 
-    pub fn new(node : &Node) -> Result<Self, String> {
+    /*pub fn new(node : &Node) -> Result<Self, String> {
         let color = gdk::RGBA{
             red:0.0,
             green:0.0,
@@ -106,7 +106,7 @@ impl IntervalMapping {
         let mut mapping = IntervalMapping{color, x, ymin, ymax, width, dash_n, col_names, source, lim_sz, vertical};
         mapping.update_layout(node)?;
         Ok(mapping)
-    }
+    }*/
 
     fn build_dash(n : i32) -> Vec<f64> {
         let dash_sz = 10.0 / (n as f64);
@@ -151,9 +151,9 @@ impl Mapping for IntervalMapping {
         }
         ctx.save();
         ctx.set_source_rgb(
-            self.color.red,
-            self.color.green,
-            self.color.blue
+            self.color.red.into(),
+            self.color.green.into(),
+            self.color.blue.into()
         );
         ctx.set_line_width(self.width);
         let dashes = IntervalMapping::build_dash(self.dash_n);
@@ -241,7 +241,7 @@ impl Mapping for IntervalMapping {
         // println!("Mapping has no extra data");
     }
 
-    fn update_layout(&mut self, node : &Node) -> Result<(), String> {
+    /*fn update_layout(&mut self, node : &Node) -> Result<(), String> {
         let props = utils::children_as_hash(node, "property");
         self.color = props.get("color")
             .ok_or(format!("color property not found"))?
@@ -265,7 +265,7 @@ impl Mapping for IntervalMapping {
             .ok_or(format!("Source property not found"))?
             .clone();
         Ok(())
-    }
+    }*/
 
     fn properties(&self) -> HashMap<String, String> {
         let mut properties = MappingType::Line.default_hash();

@@ -1,9 +1,9 @@
-use libxml::tree::node::Node;
-use gdk::RGBA;
+// use libxml::tree::node::Node;
+use gdk4::RGBA;
 use cairo::{Context, MeshCorner};
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
-use super::utils;
+// use super::utils;
 use super::super::context_mapper::Coord2D;
 use super::*;
 use cairo::Mesh;
@@ -63,7 +63,7 @@ impl SurfaceMapping {
         surface
     }
 
-    pub fn new(node : &Node) -> Result<Self, String> {
+    /*pub fn new(node : &Node) -> Result<Self, String> {
         let color = gdk::RGBA{
             red:0.0,
             green:0.0,
@@ -100,7 +100,7 @@ impl SurfaceMapping {
         };
         mapping.update_layout(node)?;
         Ok(mapping)
-    }
+    }*/
 
     fn create_uniform_coords(mapper : &ContextMapper, n : usize) -> Vec<CoordPatch> {
         let (x_ext, y_ext) = mapper.coord_extensions();
@@ -190,10 +190,10 @@ impl Mapping for SurfaceMapping {
 
         ctx.save();
         ctx.set_source_rgba(
-            self.color.red,
-            self.color.green,
-            self.color.blue,
-            self.color.alpha
+            self.color.red.into(),
+            self.color.green.into(),
+            self.color.blue.into(),
+            self.color.alpha.into()
         );
         // (1) Create uniform mesh of given resolution
         let density = 5;
@@ -312,7 +312,7 @@ impl Mapping for SurfaceMapping {
         // println!("Mapping has no extra data");
     }
 
-    fn update_layout(&mut self, node : &Node) -> Result<(), String> {
+    /*fn update_layout(&mut self, node : &Node) -> Result<(), String> {
         let props = utils::children_as_hash(node, "property");
         self.color = props.get("color")
             .ok_or(format!("color property not found"))?
@@ -350,7 +350,7 @@ impl Mapping for SurfaceMapping {
             .ok_or(format!("Source property not found"))?
             .clone();
         Ok(())
-    }
+    }*/
 
     fn properties(&self) -> HashMap<String, String> {
         let mut properties = MappingType::Surface.default_hash();

@@ -1,8 +1,8 @@
-use libxml::tree::node::Node;
+// use libxml::tree::node::Node;
 use cairo::Context;
 use super::context_mapper::ContextMapper;
 use std::collections::HashMap;
-use super::utils;
+// use super::utils;
 use super::text::{FontData, draw_label};
 use super::MappingProperty;
 use std::cmp::Ordering;
@@ -211,7 +211,7 @@ where
 
     fn update_extra_data(&mut self, values : Vec<Vec<String>>);
 
-    fn update_layout(&mut self, node : &Node) -> Result<(), String>;
+    // fn update_layout(&mut self, node : &Node) -> Result<(), String>;
 
     fn properties(&self) -> HashMap<String, String>;
 
