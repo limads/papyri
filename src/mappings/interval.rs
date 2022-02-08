@@ -1,9 +1,7 @@
-// use libxml::tree::node::Node;
 use gdk4::RGBA;
 use cairo::Context;
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
-// use super::utils;
 use super::*;
 use std::cmp::*;
 use std::default::Default;

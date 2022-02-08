@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 use cairo::Context;
 // use libxml::tree::document::{Document, SaveOptions};
 // use libxml::parser::Parser;
@@ -523,7 +525,7 @@ impl Panel {
                 panel.split = GroupSplit::Unique;
             } else {
                 if panel_def.elements.len() == 2 {
-                    panel.split = GroupSplit::Vertical;
+                    panel.split = GroupSplit::Horizontal;
                 } else {
                     if panel_def.elements.len() == 3 {
                         panel.split = GroupSplit::ThreeTop;
@@ -552,14 +554,23 @@ impl Panel {
                 panel.dimensions = (layout.width as usize, layout.height as usize);
                 panel.h_ratio = layout.horizontal_ratio;
                 panel.v_ratio = layout.vertical_ratio;
+                
                 if let Some(split) = &layout.split {
                     let split = GroupSplit::from_str(split)
                         .map_err(|_| format!("Invalid split: {}", split))?;
-                    if n_plots_for_split(&panel.split) == panel.plots.len() {
+                    if n_plots_for_split(&split) == panel.plots.len() {
                         panel.split = split;
                     } else {
                         // Do not set user-defined split property in case it was miss-specified, use
                         // the default for the given number of plots informed.
+                        let n_plots = panel.plots.len();
+                        panel.split = match n_plots  {
+                            1 => GroupSplit::Unique,
+                            2 => GroupSplit::Horizontal,
+                            3 => GroupSplit::ThreeTop,
+                            4 => GroupSplit::Four,
+                            _ => return Err(String::from("More than four plots found"))
+                        };
                     }
                 }
             }
