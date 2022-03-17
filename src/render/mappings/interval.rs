@@ -212,7 +212,7 @@ impl Mapping for IntervalMapping {
         self.ymax = values[2].clone();
     }
 
-    fn update_from_json(&mut self, mut rep : super::super::json::Mapping) {
+    fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
         if let Some(width) = rep.width {
             self.width = width;
         }

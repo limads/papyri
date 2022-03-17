@@ -174,7 +174,7 @@ impl Mapping for SurfaceMapping {
         }
     }
 
-    fn update_from_json(&mut self, mut rep : super::super::json::Mapping) {
+    fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
         // rep.z : Option<Vec<f64>>,
         // TODO check properties of other mappings are None.
         unimplemented!()

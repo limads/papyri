@@ -127,7 +127,7 @@ impl Mapping for AreaMapping {
         Box::new(self.clone())
     }
 
-    fn update_from_json(&mut self, mut rep : super::super::json::Mapping) {
+    fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
         // if let Some(ymin) = rep.ymin {
         // }
         // if let Some(ymax) = rep.ymax  {

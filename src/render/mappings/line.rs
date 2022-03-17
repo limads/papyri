@@ -1,34 +1,34 @@
-// use libxml::tree::node::Node;
 use gdk4::RGBA;
 use cairo::Context;
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
-use std::f64::consts::PI;
-// use super::utils;
 use super::*;
 use std::cmp::*;
+use std::default::Default;
+use super::super::{MappingProperty, LineProperty};
 use std::str::FromStr;
-use super::super::{MappingProperty, ScatterProperty};
 use std::borrow::Borrow;
 
 #[derive(Debug, Clone)]
-pub struct ScatterMapping {
+pub struct LineMapping {
     color : RGBA,
     x : Vec<f64>,
     y : Vec<f64>,
-    radius : f64,
+    width : f64,
+    dash_n : i32,
     col_names : [String; 2],
     source : String
 }
 
-impl Default for ScatterMapping {
+impl Default for LineMapping {
 
     fn default() -> Self {
         Self {
             color : RGBA::black(),
             x : Vec::new(),
             y : Vec::new(),
-            radius : 1.0,
+            width : 1.0,
+            dash_n : 1,
             col_names : [String::new(), String::new()],
             source : String::new()
         }
@@ -36,32 +36,44 @@ impl Default for ScatterMapping {
 
 }
 
-impl ScatterMapping {
+impl LineMapping {
+
+    pub fn width(mut self, w : f64) -> Self {
+        self.width = w;
+        self
+    }
 
     pub fn color(mut self, color : String) -> Self {
         self.color = color.parse().unwrap();
         self
     }
 
-    pub fn radius(mut self, radius : f64) -> Self {
-        self.radius = radius;
+    pub fn dash_n(mut self, dash_n : i32) -> Self {
+        self.dash_n = dash_n;
         self
     }
 
+    // TODO rename to data.
     pub fn map<D>(x : impl IntoIterator<Item=D>, y : impl IntoIterator<Item=D>) -> Self
     where
         D : Borrow<f64>
     {
-        let mut scatter : ScatterMapping = Default::default();
+        let mut line : LineMapping = Default::default();
         let x : Vec<_> = x.into_iter().map(|d| *d.borrow() ).collect();
         let y : Vec<_> = y.into_iter().map(|d| *d.borrow() ).collect();
-        scatter.update_data(vec![x, y]);
-        scatter
+        line.update_data(vec![x, y]);
+        line
     }
 
-    /*pub fn new(node : &Node) -> Result<Self,String> {
-        let color = RGBA::black();
-        let radius = 1.0;
+    /*pub fn new(node : &Node) -> Result<Self, String> {
+        let color = gdk::RGBA{
+            red:0.0,
+            green:0.0,
+            blue:0.0,
+            alpha : 0.0
+        };
+        let width = 1.0;
+        let dash_n = 1;
         let x = Vec::<f64>::new();
         let y = Vec::<f64>::new();
         let col_names = [
@@ -69,22 +81,33 @@ impl ScatterMapping {
             String::from("None")
         ];
         let source = String::new();
-        let mut mapping = ScatterMapping{color, x, y, radius, col_names, source};
+        let mut mapping = LineMapping{color, x, y, width, dash_n, col_names, source};
         mapping.update_layout(node)?;
         Ok(mapping)
     }*/
+
+    fn build_dash(n : i32) -> Vec<f64> {
+        let dash_sz = 10.0 / (n as f64);
+        let mut dashes = Vec::<f64>::new();
+        for _i in 1..n {
+            dashes.push(dash_sz);
+        }
+        dashes
+    }
+
 }
 
-impl Mapping for ScatterMapping {
+impl Mapping for LineMapping {
 
     fn update(&mut self, prop : MappingProperty) -> bool {
         match prop {
-            MappingProperty::Scatter(scatter) => {
-                match scatter {
-                    ScatterProperty::Color(col) => { self.color = col.parse().unwrap() },
-                    ScatterProperty::Radius(r) => { self.radius = r },
-                    ScatterProperty::X(x) => { self.x = x },
-                    ScatterProperty::Y(y) => { self.y = y }
+            MappingProperty::Line(line) => {
+                match line {
+                    LineProperty::Color(col) => { self.color = col.parse().unwrap() },
+                    LineProperty::Width(w) => { self.width = w },
+                    LineProperty::Dash(d) => { self.dash_n = d },
+                    LineProperty::X(x) => { self.x = x },
+                    LineProperty::Y(y) => { self.y = y }
                 }
                 true
             },
@@ -96,45 +119,69 @@ impl Mapping for ScatterMapping {
         Box::new(self.clone())
     }
 
-    fn update_from_json(&mut self, mut rep : super::super::json::Mapping) {
-        // TODO check properties of other mappings are None.
-        if let Some(color) = rep.color.clone() {
-            self.color = RGBA::from_str(&color).unwrap();
-        }
-        if let Some(radius) = rep.radius {
-            self.radius = radius;
-        }
-
-        // println!("Scatter mapping json rep: {:?}", rep);
-
-        super::update_data_pair_from_json(&mut self.x, &mut self.y, rep);
-    }
-
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
+        //println!("{:?}", self);
+        if self.x.len() < 2 || self.y.len() < 2 {
+            return;
+        }
         ctx.save();
-        ctx.set_source_rgba(
+        ctx.set_source_rgb(
             self.color.red.into(),
             self.color.green.into(),
-            self.color.blue.into(),
-            self.color.alpha.into()
+            self.color.blue.into()
         );
-        for (x, y) in self.x.iter().zip(self.y.iter()) {
-            if mapper.check_bounds(*x, *y) {
-                let pos = mapper.map(*x, *y);
-                ctx.arc(pos.x, pos.y, self.radius, 0.0, 2.0*PI);
-                ctx.fill();
-                ctx.stroke();
-            } else {
-                println!("Out of bounds mapping");
+        ctx.set_line_width(self.width);
+        let dashes = LineMapping::build_dash(self.dash_n);
+        ctx.set_dash(&dashes[..], 0.0);
+        //println!("Received for drawing {:?} {:?}", self.x, self.y);
+        let mut zip_xy = self.x[1..].iter().zip(self.y[1..].iter());
+        /*let (mut prev_x, mut prev_y) = match zip_xy.next() {
+            Some((prev_x, prev_y)) => (prev_x, prev_y),
+            None => {
+                ctx.restore();
+                return;
             }
+        };*/
+
+        let from = mapper.map(self.x[0], self.y[0]);
+        ctx.move_to(from.x, from.y);
+
+        for (curr_x, curr_y) in zip_xy {
+            if mapper.check_bounds(*curr_x, *curr_y) {
+                // let from = mapper.map(*prev_x, *prev_y);
+                let to   = mapper.map(*curr_x, *curr_y);
+                ctx.line_to(to.x, to.y);
+            } else {
+                //println!("Out of bounds mapping");
+            }
+            // println!("Now drawing to {:?} {:?}", to.x, to.y);
+            // prev_x = curr_x;
+            // prev_y = curr_y;
         }
+        ctx.stroke();
         ctx.restore();
     }
 
-    //fn new(&self, HashMap<String, String> properties);
     fn update_data(&mut self, values : Vec<Vec<f64>>) {
         self.x = values[0].clone();
         self.y = values[1].clone();
+    }
+
+    fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
+        if let Some(width) = rep.width {
+            self.width = width;
+        }
+        if let Some(dash_n) = rep.spacing {
+            self.dash_n = dash_n;
+        }
+        if let Some(color) = rep.color.clone() {
+            self.color = color.parse().unwrap();
+        }
+
+        // println!("Mapping json rep: {:?}", rep);
+
+        super::update_data_pair_from_json(&mut self.x, &mut self.y, rep);
+        // TODO check properties of other mappings are None.
     }
 
     fn update_extra_data(&mut self, _values : Vec<Vec<String>>) {
@@ -147,10 +194,14 @@ impl Mapping for ScatterMapping {
             .ok_or(format!("color property not found"))?
             .parse()
             .map_err(|_| format!("Unable to parse color property"))?;
-        self.radius = props.get("radius")
-            .ok_or(format!("radius property not found"))?
+        self.width = props.get("width")
+            .ok_or(format!("width property not found"))?
             .parse()
-            .map_err(|_| format!("Unable to parse radius property"))?;
+            .map_err(|_| format!("Unable to parse width property"))?;
+        self.dash_n = props.get("dash")
+            .ok_or(format!("dash property not found"))?
+            .parse()
+            .map_err(|_| format!("Unable to parse dash property"))?;
         self.col_names[0] = props.get("x")
             .ok_or(format!("x property not found"))?
             .clone();
@@ -164,12 +215,15 @@ impl Mapping for ScatterMapping {
     }*/
 
     fn properties(&self) -> HashMap<String, String> {
-        let mut properties = MappingType::Scatter.default_hash();
+        let mut properties = MappingType::Line.default_hash();
         if let Some(e) = properties.get_mut("color") {
             *e = self.color.to_string();
         }
-        if let Some(e) = properties.get_mut("radius") {
-            *e = self.radius.to_string();
+        if let Some(e) = properties.get_mut("width") {
+            *e = self.width.to_string();
+        }
+        if let Some(e) = properties.get_mut("dash"){
+            *e = self.dash_n.to_string();
         }
         if let Some(e) = properties.get_mut("x") {
             *e = self.col_names[0].clone();
@@ -184,7 +238,7 @@ impl Mapping for ScatterMapping {
     }
 
     fn mapping_type(&self) -> String {
-        "scatter".into()
+        "line".into()
     }
 
     fn get_col_name(&self, col : &str) -> String {
@@ -195,15 +249,7 @@ impl Mapping for ScatterMapping {
         }
     }
 
-    fn data_limits(&self) -> Option<((f64, f64), (f64, f64))> {
-        let xmin = self.x.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;
-        let xmax = self.x.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;
-        let ymin = self.y.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;
-        let ymax = self.y.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;
-        Some(((*xmin, *xmax), (*ymin, *ymax)))
-    }
-
-    fn get_ordered_col_names(&self) -> Vec<(String,String)> {
+    fn get_ordered_col_names(&self) -> Vec<(String, String)> {
         vec![
             (String::from("x"), self.get_col_name("x")),
             (String::from("y"), self.get_col_name("y"))
@@ -235,6 +281,14 @@ impl Mapping for ScatterMapping {
         }
     }
 
+    fn data_limits(&self) -> Option<((f64, f64), (f64, f64))> {
+        let xmin = self.x.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;
+        let xmax = self.x.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
+        let ymin = self.y.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
+        let ymax = self.y.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
+        Some(((*xmin, *xmax), (*ymin, *ymax)))
+    }
+
     fn set_source(&mut self, source : String) {
         self.source = source;
     }
@@ -242,6 +296,5 @@ impl Mapping for ScatterMapping {
     fn get_source(&self) -> String {
         self.source.clone()
     }
-
 }
 

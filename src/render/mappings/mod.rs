@@ -101,7 +101,7 @@ impl MappingType {
     }
 }
 
-fn update_data_pair_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, mut rep : super::json::Mapping) {
+fn update_data_pair_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, mut rep : crate::model::Mapping) {
     if let Some(ref mut map) = rep.map {
         if let Some(new_x) = mem::take(&mut map.x) {
             *x = new_x;
@@ -112,7 +112,7 @@ fn update_data_pair_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, mut rep : su
     }
 }
 
-fn update_data_triplet_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, z : &mut Vec<f64>, mut rep : super::json::Mapping) {
+fn update_data_triplet_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, z : &mut Vec<f64>, mut rep : crate::model::Mapping) {
     if let Some(ref mut map) = rep.map {
         if let Some(new_x) = mem::take(&mut map.x) {
             *x = new_x;
@@ -132,7 +132,7 @@ fn update_data_triplet_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, z : &mut 
     }
 }
 
-fn update_textual_data_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, z : &mut Vec<String>, mut rep : super::json::Mapping) {
+fn update_textual_data_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, z : &mut Vec<String>, mut rep : crate::model::Mapping) {
     if let Some(ref mut map) = rep.map {
         if let Some(new_x) = mem::take(&mut map.x) {
             *x = new_x;
@@ -146,7 +146,7 @@ fn update_textual_data_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, z : &mut 
     }
 }
 
-pub fn new_from_json(mut rep : super::json::Mapping) -> Result<Box<dyn Mapping>, Box<dyn Error>> {
+pub fn new_from_json(mut rep : crate::model::Mapping) -> Result<Box<dyn Mapping>, Box<dyn Error>> {
     // Must be line|scatter|area|bar|surface|text
     let mut mapping : Box<dyn Mapping> = match &rep.kind[..] {
         "line" => {
@@ -233,7 +233,7 @@ where
 
     fn data_limits(&self) -> Option<((f64, f64), (f64, f64))>;
 
-    fn update_from_json(&mut self, rep : super::json::Mapping);
+    fn update_from_json(&mut self, rep : crate::model::Mapping);
 
 }
 

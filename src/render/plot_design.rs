@@ -5,7 +5,7 @@ use std::error::Error;
 use super::text;
 use std::collections::HashMap;
 use std::str::FromStr;
-use crate::FontData;
+use crate::render::text::FontData;
 
 #[derive(Clone, Debug)]
 pub struct PlotDesign {
@@ -30,7 +30,7 @@ impl Default for PlotDesign {
 
 impl PlotDesign {
 
-    pub fn new_from_json(rep : super::json::Design) -> Result<Self, Box<dyn Error>> {
+    pub fn new_from_json(rep : crate::model::Design) -> Result<Self, Box<dyn Error>> {
         Ok(Self {
             bg_color : rep.bg_color.parse().unwrap(),
             grid_color : rep.grid_color.parse().unwrap(),

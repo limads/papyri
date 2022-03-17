@@ -169,7 +169,7 @@ impl Scale {
         self.steps = define_steps(self.n_intervals, self.from, self.to, self.offset, self.log);
     }
 
-    pub fn new_from_json(rep : super::json::Scale) -> Option<Self> {
+    pub fn new_from_json(rep : crate::model::Scale) -> Option<Self> {
         let adj : Adjustment = if let Some(adj) = rep.adjust {
             adj.parse().ok()?
         } else {

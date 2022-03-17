@@ -182,7 +182,7 @@ impl Mapping for BarMapping {
         }
     }
 
-    fn update_from_json(&mut self, mut rep : super::super::json::Mapping) {
+    fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
         // TODO check properties of other mappings are None.
         unimplemented!()
     }
