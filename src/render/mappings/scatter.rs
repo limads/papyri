@@ -28,7 +28,7 @@ impl Default for ScatterMapping {
             color : RGBA::black(),
             x : Vec::new(),
             y : Vec::new(),
-            radius : 1.0,
+            radius : 5.0,
             col_names : [String::new(), String::new()],
             source : String::new()
         }

@@ -453,14 +453,18 @@ impl Panel {
     }
 
     pub fn new_from_json(json : &str) -> Result<Self, String> {
-
-        let opt_panel : Option<crate::model::Panel> = serde_json::from_str(json).ok();
-        if let Some(mut panel_def) = opt_panel {
-            Self::new_from_model(panel_def)
-        } else {
-            let mut plot : crate::model::Plot = serde_json::from_str(json)
-                .map_err(|e| format!("Error parsing plot = {}", e) )?;
-            Self::new_from_single(plot)
+        let res_panel : Result<crate::model::Panel, _> = serde_json::from_str(json);
+        match res_panel {
+            Ok(panel_def) => {
+                Self::new_from_model(panel_def)
+            },
+            Err(e) => {
+                println!("Error parsing panel = {}", e);
+                println!("{}", json);
+                let mut plot : crate::model::Plot = serde_json::from_str(json)
+                    .map_err(|e| format!("Error parsing plot = {}", e) )?;
+                Self::new_from_single(plot)
+            }
         }
     }
 

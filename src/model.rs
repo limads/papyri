@@ -246,7 +246,8 @@ pub struct Map {
 pub struct Line {
     pub map : Map,
     pub width : f64,
-    pub spacing : i32
+    pub spacing : i32,
+    pub color : String
 }
 
 pub struct LineBuilder(Line);
@@ -271,6 +272,11 @@ impl LineBuilder {
         self.0.spacing = spacing;
         self
     }
+
+    pub fn color(mut self, color : &str) -> Self {
+        self.0.color = color.to_string();
+        self
+    }
 }
 
 impl Line {
@@ -291,7 +297,8 @@ impl Default for Line {
         Line {
             map : Map::default(),
             width : 1.0,
-            spacing : 1
+            spacing : 1,
+            color : String::from("#000000")
         }
     }
 
@@ -300,8 +307,72 @@ impl Default for Line {
 impl From<Line> for Mapping {
 
     fn from(line : Line) -> Self {
-        let Line { map, width, spacing, .. } = line;
-        Mapping { kind : String::from("line"), map : Some(map), width : Some(width), spacing : Some(spacing), ..Default::default() }
+        let Line { map, width, spacing, color, .. } = line;
+        Mapping { kind : String::from("line"), map : Some(map), width : Some(width), spacing : Some(spacing), color : Some(color), ..Default::default() }
+    }
+
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Scatter {
+    pub map : Map,
+    pub radius : f64,
+    pub color : String
+}
+
+pub struct ScatterBuilder(Scatter);
+
+impl ScatterBuilder {
+
+    pub fn build(self) -> Scatter {
+        self.0
+    }
+
+    pub fn map(mut self, x : Vec<f64>, y : Vec<f64>) -> Self {
+        self.0.map = Map { x : Some(x), y : Some(y), z : None, text : None };
+        self
+    }
+
+    pub fn radius(mut self, radius : f64) -> Self {
+        self.0.radius = radius;
+        self
+    }
+
+    pub fn color(mut self, color : &str) -> Self {
+        self.0.color = color.to_string();
+        self
+    }
+}
+
+impl Scatter {
+
+    pub fn new() -> Self {
+        Scatter::default()
+    }
+
+    pub fn builder() -> ScatterBuilder {
+        ScatterBuilder(Self::default())
+    }
+
+}
+
+impl Default for Scatter {
+
+    fn default() -> Self {
+        Scatter {
+            map : Map::default(),
+            radius : 1.0,
+            color : String::from("#000000")
+        }
+    }
+
+}
+
+impl From<Scatter> for Mapping {
+
+    fn from(scatter : Scatter) -> Self {
+        let Scatter { map, radius, color, .. } = scatter;
+        Mapping { kind : String::from("scatter"), map : Some(map), radius : Some(radius), color : Some(color), ..Default::default() }
     }
 
 }
@@ -312,8 +383,8 @@ pub struct Mapping {
     // Must be line|scatter|area|bar|surface|text|interval
     pub kind : String,
 
+    // Shared by all mappings
     pub color : Option<String>,
-
     pub map : Option<Map>,
 
     // area-specific
