@@ -459,8 +459,8 @@ impl Panel {
                 Self::new_from_model(panel_def)
             },
             Err(e) => {
-                println!("Error parsing panel = {}", e);
-                println!("{}", json);
+                // println!("Error parsing panel = {}", e);
+                // println!("{}", json);
                 let mut plot : crate::model::Plot = serde_json::from_str(json)
                     .map_err(|e| format!("Error parsing plot = {}", e) )?;
                 Self::new_from_single(plot)

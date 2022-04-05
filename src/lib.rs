@@ -19,7 +19,7 @@ pub mod ffi {
     const INVALID_DEFINITION : i64 = 3;
 
     #[no_mangle]
-    extern "C" fn error(code : i64, out : *mut u8, out_len : &mut usize) -> i64 {
+    pub extern "C" fn papyri_error(code : i64, out : *mut u8, out_len : &mut usize) -> i64 {
         let mut out = unsafe { std::slice::from_raw_parts_mut(out, *out_len) };
         let msg = match code {
             INVALID_UTF8 => "Invalid UTF-8",
@@ -36,7 +36,7 @@ pub mod ffi {
     }
 
     #[no_mangle]
-    extern "C" fn svg(model : *const u8, model_len : usize, out : *mut u8, out_len : &mut usize) -> i64 {
+    pub extern "C" fn papyri_svg(model : *const u8, model_len : usize, out : *mut u8, out_len : &mut usize) -> i64 {
         let model = unsafe { std::slice::from_raw_parts(model, model_len) };
         match std::str::from_utf8(model) {
             Ok(s) => {

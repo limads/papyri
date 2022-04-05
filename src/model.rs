@@ -239,6 +239,7 @@ pub struct Map {
     //surface and area-specific
     pub z : Option<Vec<f64>>,
 
+    // Text-specific
     pub text : Option<Vec<String>>
 }
 
@@ -377,6 +378,166 @@ impl From<Scatter> for Mapping {
 
 }
 
+// Interval
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Interval {
+    pub map : Map,
+    pub width : f64,
+    pub limits : f64,
+    pub spacing : f64,
+    pub vertical : bool,
+    pub color : String
+}
+
+pub struct IntervalBuilder(Interval);
+
+impl IntervalBuilder {
+
+    // Line thickness
+    pub fn width(mut self, width : f64) -> Self {
+        self.0.width = width;
+        self
+    }
+
+    // Spacing between elements if this interval is a dotted line.
+    pub fn spacing(mut self, spacing : f64) -> Self {
+        self.0.spacing = spacing;
+        self
+    }
+
+    pub fn vertical(mut self, vertical : bool) -> Self {
+        self.0.vertical = vertical;
+        self
+    }
+
+    pub fn limits(mut self, limits : f64) -> Self {
+        self.0.limits = limits;
+        self
+    }
+
+    pub fn build(self) -> Interval {
+        self.0
+    }
+
+    pub fn map(mut self, pos : Vec<f64>, min : Vec<f64>, max : Vec<f64>) -> Self {
+        self.0.map = Map { x : Some(pos), y : Some(min), z : Some(max), text : None };
+        self
+    }
+
+    pub fn color(mut self, color : &str) -> Self {
+        self.0.color = color.to_string();
+        self
+    }
+}
+
+impl Interval {
+
+    pub fn new() -> Self {
+        Interval::default()
+    }
+
+    pub fn builder() -> IntervalBuilder {
+        IntervalBuilder(Self::default())
+    }
+
+}
+
+impl Default for Interval {
+
+    fn default() -> Self {
+        Interval {
+            map : Map::default(),
+            color : String::from("#000000"),
+            width : 1.0,
+            spacing : 1.0,
+            limits : 1.0,
+            vertical : true
+        }
+    }
+
+}
+
+impl From<Interval> for Mapping {
+
+    fn from(interval : Interval) -> Self {
+        let Interval { map, color, width, vertical, limits, .. } = interval;
+        Mapping {
+            kind : String::from("interval"),
+            map : Some(map),
+            color : Some(color),
+            limits : Some(limits),
+            vertical : Some(vertical),
+            width : Some(width),
+            ..Default::default()
+        }
+    }
+
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Label {
+    pub map : Map,
+    pub color : String,
+    pub font : String,
+}
+
+pub struct LabelBuilder(Label);
+
+impl LabelBuilder {
+
+    pub fn build(self) -> Label {
+        self.0
+    }
+
+    pub fn map(mut self, x : Vec<f64>, y : Vec<f64>, text : Vec<String>) -> Self {
+        self.0.map = Map { x : Some(x), y : Some(y), z : None, text : Some(text) };
+        self
+    }
+
+    pub fn font(mut self, font : String) -> Self {
+        self.0.font = font;
+        self
+    }
+
+    pub fn color(mut self, color : &str) -> Self {
+        self.0.color = color.to_string();
+        self
+    }
+}
+
+impl Label {
+
+    pub fn new() -> Label {
+        Label::default()
+    }
+
+    pub fn builder() -> LabelBuilder {
+        LabelBuilder(Self::default())
+    }
+
+}
+
+impl Default for Label {
+
+    fn default() -> Label {
+        Label {
+            map : Map::default(),
+            color : String::from("#000000"),
+            font : String::from("Monospace Regular 12")
+        }
+    }
+
+}
+
+impl From<Label> for Mapping {
+
+    fn from(label : Label) -> Self {
+        let Label { map, color, font, .. } = label;
+        Mapping { kind : String::from("text"), map : Some(map), color : Some(color), font : Some(font), ..Default::default() }
+    }
+
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Mapping {
 
@@ -392,7 +553,6 @@ pub struct Mapping {
     // pub ymax : Option<f64>,
 
     // text-specific
-    pub text : Option<Vec<String>>,
     pub font : Option<String>,
 
     // Scatter-specific
