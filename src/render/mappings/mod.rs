@@ -11,6 +11,7 @@ use std::mem;
 use std::error::Error;
 use std::fmt::Debug;
 use base64;
+use crate::render::PlotError;
 
 pub mod area;
 
@@ -101,6 +102,14 @@ impl MappingType {
     }
 }
 
+fn update_single_data_from_json(x : &mut Vec<f64>, mut rep : crate::model::Mapping) {
+    if let Some(ref mut map) = rep.map {
+        if let Some(new_x) = mem::take(&mut map.x) {
+            *x = new_x;
+        }
+    }
+}
+
 fn update_data_pair_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, mut rep : crate::model::Mapping) {
     if let Some(ref mut map) = rep.map {
         if let Some(new_x) = mem::take(&mut map.x) {
@@ -177,7 +186,9 @@ pub fn new_from_json(mut rep : crate::model::Mapping) -> Result<Box<dyn Mapping>
             let intv : interval::IntervalMapping = Default::default();
             Box::new(intv)
         },
-        _ => panic!("Unrecognized mapping")
+        _ => {
+            return Err(Box::new(PlotError::InvalidData("Invalid mapping type")));
+        }
     };
     mapping.update_from_json(rep);
     Ok(mapping)

@@ -2,6 +2,12 @@ use serde::{Serialize, Deserialize};
 use std::default::Default;
 use std::fmt;
 
+/*
+The design and layout are always applied to the panel. When single plots
+carry a layout and design, they refer to the design and layout of the implicit
+1-element panel
+*/
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Design {
     pub bg_color : String,
@@ -538,6 +544,102 @@ impl From<Label> for Mapping {
 
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Bar {
+    pub map : Map,
+    pub color : String,
+    pub bar_width : f64,
+    pub bar_spacing : f64,
+    pub origin : f64,
+    pub center_anchor : bool,
+    pub horizontal : bool,
+}
+
+pub struct BarBuilder(Bar);
+
+impl BarBuilder {
+
+    pub fn build(self) -> Bar {
+        self.0
+    }
+
+    pub fn map(mut self, x : Vec<f64>) -> Self {
+        self.0.map = Map { x : Some(x), y : None, z : None, text : None };
+        self
+    }
+
+    pub fn width(mut self, width : f64) -> Self {
+        self.0.bar_width = width;
+        self
+    }
+
+    pub fn bar_spacing(mut self, bar_spacing : f64) -> Self {
+        self.0.bar_spacing = bar_spacing;
+        self
+    }
+
+    pub fn origin(mut self, origin : f64) -> Self {
+        self.0.origin = origin;
+        self
+    }
+
+    pub fn center_anchor(mut self, center : bool) -> Self {
+        self.0.center_anchor = center;
+        self
+    }
+
+    pub fn horizontal(mut self, horizontal : bool) -> Self {
+        self.0.horizontal = horizontal;
+        self
+    }
+}
+
+impl Bar {
+
+    pub fn new() -> Bar {
+        Bar::default()
+    }
+
+    pub fn builder() -> BarBuilder {
+        BarBuilder(Self::default())
+    }
+
+}
+
+impl Default for Bar {
+
+    fn default() -> Bar {
+        Bar {
+            map : Map::default(),
+            color : String::from("#000000"),
+            bar_width : 100.0,
+            bar_spacing : 1.0,
+            origin : 0.,
+            center_anchor : false,
+            horizontal : false,
+        }
+    }
+
+}
+
+impl From<Bar> for Mapping {
+
+    fn from(bar : Bar) -> Self {
+        let Bar { map, color, bar_width, bar_spacing, origin, center_anchor, horizontal, .. } = bar;
+        Mapping {
+            kind : String::from("bar"),
+            map : Some(map),
+            color : Some(color),
+            origin : Some(origin),
+            center_anchor :  Some(center_anchor),
+            horizontal : Some(horizontal),
+            bar_width : Some(bar_width),
+            ..Default::default()
+        }
+    }
+
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Mapping {
 
@@ -558,13 +660,20 @@ pub struct Mapping {
     // Scatter-specific
     pub radius : Option<f64>,
 
-    // Line and interval-specific
+    // Line, bar and  interval-specific
     pub width : Option<f64>,
     pub spacing : Option<i32>,
 
     // Interval-specific
     pub limits : Option<f64>,
     pub vertical : Option<bool>,
+
+    // Bar-specific
+    pub center_anchor : Option<bool>,
+    pub horizontal : Option<bool>,
+    pub bar_width : Option<f64>,
+    pub bar_spacing : Option<f64>,
+    pub origin : Option<f64>,
 
 }
 

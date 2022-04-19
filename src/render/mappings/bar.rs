@@ -184,7 +184,38 @@ impl Mapping for BarMapping {
 
     fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
         // TODO check properties of other mappings are None.
-        unimplemented!()
+
+        if let Some(w) = rep.bar_width {
+            self.bar_width = w;
+        }
+
+        if let Some(h) = rep.horizontal {
+            self.horizontal = h;
+        }
+
+        if let Some(s) = rep.bar_spacing {
+            self.bar_spacing = s;
+        }
+
+        if let Some(origin) = rep.origin {
+            if self.horizontal {
+                self.origin = (0., origin);
+            } else {
+                self.origin = (origin, 0.);
+            }
+        }
+
+        if let Some(c) = rep.center_anchor {
+            self.center_anchor = c;
+        }
+
+        if let Some(color) = rep.color.clone() {
+            self.color = color.parse().unwrap();
+        }
+
+        let mut new_data = Vec::new();
+        super::update_single_data_from_json(&mut new_data, rep);
+        self.update_data(vec![new_data]);
     }
 
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) {

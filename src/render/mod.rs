@@ -404,14 +404,21 @@ impl Panel {
             }
         }
 
-        for plot_def in panel_def.elements.drain(..) {
+        // Always ignore the layout/design of individual plot elements
+        // when they are inside a panel definition. The individual layout/design
+        // for separate plots only apply when they are a single element with an
+        // implicit panel definition.
+        for mut plot_def in panel_def.elements.drain(..) {
 
+            // Just overwrite them if set at the panel level.
             if plot_def.design.is_some() {
-                return Err(format!("Panel definitions require plots without a design field"));
-            }
+                // return Err(format!("Panel definitions require plots without a design field"));
+                plot_def.design = None;
 
+            }
             if plot_def.layout.is_some() {
-                return Err(format!("Panel definitions require plots without a layout field"));
+                // return Err(format!("Panel definitions require plots without a layout field"));
+                plot_def.layout = None;
             }
 
             let plot = Plot::new_from_model(plot_def)
