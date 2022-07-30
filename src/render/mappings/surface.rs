@@ -9,6 +9,7 @@ use super::*;
 use cairo::Mesh;
 use std::cmp::*;
 use super::super::MappingProperty;
+use crate::model::MappingType;
 
 #[derive(Clone, Debug)]
 pub struct SurfaceMapping {

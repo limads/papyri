@@ -2,44 +2,7 @@ use std::collections::HashMap;
 use super::ScaleProperty;
 use super::context_mapper;
 use std::str::FromStr;
-
-/// Carries the logic of how scale adjustment to the mapping should be done.
-/// Tight means the two scales will extend just enough to show the data.
-/// Round means the scales will extend to show the data, and a little
-/// more so that it ends at a nearby round number at the scale of 5 or 10.
-/// Off means adjustment is not applied, and the minimum and maximum
-/// values supplied by the user will be used instead.
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub enum Adjustment {
-    Tight,
-
-    Round,
-
-    Off
-}
-
-impl FromStr for Adjustment {
-
-    type Err = ();
-
-    fn from_str(s : &str) -> Result<Self, ()> {
-        match s {
-            "tight" => Ok(Self::Tight),
-            "round" => Ok(Self::Round),
-            "off" => Ok(Self::Off),
-            _ => Err(())
-        }
-    }
-
-}
-
-impl Default for Adjustment {
-
-    fn default() -> Self {
-        Self::Off
-    }
-
-}
+use crate::model::{Adjustment, ScaleError};
 
 #[derive(Debug, Clone)]
 pub struct Scale {
@@ -169,13 +132,18 @@ impl Scale {
         self.steps = define_steps(self.n_intervals, self.from, self.to, self.offset, self.log);
     }
 
-    pub fn new_from_json(rep : crate::model::Scale) -> Option<Self> {
+    pub fn new_from_json(rep : crate::model::Scale) -> Result<Self, ScaleError> {
+        rep.validate()?;
         let adj : Adjustment = if let Some(adj) = rep.adjust {
-            adj.parse().ok()?
+            adj.parse().or(Err(ScaleError::InvalidAdjustment))?
         } else {
             Adjustment::Tight
         };
-        Some(Self::new_full(rep.label, rep.precision, rep.from, rep.to, rep.n_intervals, rep.log, rep.invert, rep.offset, adj))
+        let scale = Self::new_full(rep.label, rep.precision, rep.from, rep.to, rep.n_intervals, rep.log, rep.invert, rep.offset, adj);
+        if scale.n_intervals as usize + 1 != scale.steps.len() {
+            Err(ScaleError::StepNumber)?;
+        }
+        Ok(scale)
     }
 
     pub fn new_full(
@@ -250,7 +218,7 @@ fn define_steps(n_intervals : i32, from : f64, to : f64, offset : i32, log : boo
         false => (to - from - 2.0*off_prop ) / (n_intervals as f64)
     };
     let mut steps = Vec::<f64>::new();
-    for i in 0..n_intervals+1 {
+    for i in 0..(n_intervals+1) {
         let step = if log {
             (10.0 as f64).powf(from_offset.log10() + (i as f64)*intv_size)
         } else {

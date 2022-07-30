@@ -10,7 +10,7 @@ pub mod render;
 #[cfg(feature="cairo-rs")]
 pub mod ffi {
 
-    use std::os::raw::c_char;
+    // use std::os::raw::c_char;
 
     const INVALID_UTF8 : i64 = 1;
 
@@ -20,7 +20,7 @@ pub mod ffi {
 
     #[no_mangle]
     pub extern "C" fn papyri_error(code : i64, out : *mut u8, out_len : &mut usize) -> i64 {
-        let mut out = unsafe { std::slice::from_raw_parts_mut(out, *out_len) };
+        let out = unsafe { std::slice::from_raw_parts_mut(out, *out_len) };
         let msg = match code {
             INVALID_UTF8 => "Invalid UTF-8",
             INSUFFICIENT_LEN => "Insufficient length",
@@ -73,6 +73,4 @@ pub mod ffi {
     }
 
 }
-
-
 

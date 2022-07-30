@@ -6,6 +6,7 @@ use super::text;
 use std::collections::HashMap;
 use std::str::FromStr;
 use crate::render::text::FontData;
+use crate::model::DesignError;
 
 #[derive(Clone, Debug)]
 pub struct PlotDesign {
@@ -31,12 +32,16 @@ impl Default for PlotDesign {
 impl PlotDesign {
 
     pub fn new_from_json(rep : crate::model::Design) -> Result<Self, Box<dyn Error>> {
-        Ok(Self {
-            bg_color : rep.bg_color.parse().unwrap(),
-            grid_color : rep.grid_color.parse().unwrap(),
+        rep.validate()?;
+        let bg_color = rep.bg_color.parse().or(Err(DesignError::InvalidBackgroundColor))?;
+        let grid_color = rep.grid_color.parse().or(Err(DesignError::InvalidGridColor))?;
+        let design = Self {
+            bg_color,
+            grid_color,
             grid_width : rep.grid_width,
             font : text::FontData::new_from_string(&rep.font)
-        })
+        };
+        Ok(design)
     }
 
     /*pub fn new( /*node : &Node*/ ) -> Result<PlotDesign, Box<dyn Error>> {

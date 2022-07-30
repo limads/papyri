@@ -21,11 +21,10 @@ serde = { version="1.0.130", features=["derive"] }
 serde_json = "1.0.68"
 tempfile = "3.2.0"
 base64="0.13.0"
-
 # Glib-based dependencies, for rendering.
 gdk4 = { version = "0.3", optional = true }
 gdk-pixbuf = { version = "0.14", optional = true }
 cairo-rs = { version = "0.14", features = ["svg", "png", "ps"], optional = true }
-
+thiserror = "1.0.31"
 
 

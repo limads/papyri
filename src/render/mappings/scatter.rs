@@ -10,6 +10,7 @@ use std::cmp::*;
 use std::str::FromStr;
 use super::super::{MappingProperty, ScatterProperty};
 use std::borrow::Borrow;
+use crate::model::MappingType;
 
 #[derive(Debug, Clone)]
 pub struct ScatterMapping {

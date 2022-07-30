@@ -8,6 +8,7 @@ use std::default::Default;
 use super::super::{MappingProperty, IntervalProperty};
 use std::str::FromStr;
 use std::borrow::Borrow;
+use crate::model::MappingType;
 
 #[derive(Debug, Clone)]
 pub struct IntervalMapping {

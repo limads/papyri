@@ -8,6 +8,7 @@ use super::*;
 use std::mem;
 use super::super::MappingProperty;
 use std::borrow::Borrow;
+use crate::model::MappingType;
 
 /// Represents ordered, regularly-spaced bars. The only map required by the bars
 /// is their height (or width if they are horizontally spaced), since the bar position

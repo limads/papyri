@@ -1,5 +1,3 @@
-use std::io;
-use std::io::Read;
 
 fn main() -> Result<(), String> {
 
@@ -7,8 +5,12 @@ fn main() -> Result<(), String> {
     #[cfg(feature="gdk-pixbuf")]
     #[cfg(feature="cairo-rs")]
     {
+
+        use std::io;
+        // use std::io::Read;
+
         let mut model_str = String::new();
-        let mut panel : Option<papyri::render::Panel> = None;
+        // let panel : Option<papyri::render::Panel> = None;
 
         // Read input lines until a plot can be parsed. Perhaps issue a
         // timeout if no data is sent and the current input cannot be successfully parsed.
@@ -30,6 +32,9 @@ fn main() -> Result<(), String> {
         // }
     }
 
+    #[cfg(not(feature="gdk4"))]
+    #[cfg(not(feature="gdk-pixbuf"))]
+    #[cfg(not(feature="cairo-rs"))]
     Err(format!("Crate not compiled with features 'gdk4, gdk-pixbuf or cairo-rs'"))
 }
 

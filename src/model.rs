@@ -1,6 +1,122 @@
 use serde::{Serialize, Deserialize};
 use std::default::Default;
 use std::fmt;
+use std::collections::HashMap;
+use std::ops::Range;
+use std::str::FromStr;
+
+/// Carries the logic of how scale adjustment to the mapping should be done.
+/// Tight means the two scales will extend just enough to show the data.
+/// Round means the scales will extend to show the data, and a little
+/// more so that it ends at a nearby round number at the scale of 5 or 10.
+/// Off means adjustment is not applied, and the minimum and maximum
+/// values supplied by the user will be used instead.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
+pub enum Adjustment {
+    Tight,
+
+    Round,
+
+    Off
+}
+
+impl FromStr for Adjustment {
+
+    type Err = ();
+
+    fn from_str(s : &str) -> Result<Self, ()> {
+        match s {
+            "tight" => Ok(Self::Tight),
+            "round" => Ok(Self::Round),
+            "off" => Ok(Self::Off),
+            _ => Err(())
+        }
+    }
+
+}
+
+impl Default for Adjustment {
+
+    fn default() -> Self {
+        Self::Off
+    }
+
+}
+
+pub enum MappingType {
+    Line,
+    Scatter,
+    Bar,
+    Area,
+    // Surface,
+    Text,
+    Interval
+}
+
+impl MappingType {
+
+    pub fn from_str(name : &str) -> Option<Self> {
+        match name {
+            "line" => Some(MappingType::Line),
+            "scatter" => Some(MappingType::Scatter),
+            "bar" => Some(MappingType::Bar),
+            "area" => Some(MappingType::Area),
+            // "surface" => Some(MappingType::Surface),
+            "text" => Some(MappingType::Text),
+            "interval" => Some(MappingType::Interval),
+            _ => None
+        }
+    }
+
+    /// Returns a default property map for this mapping type. This is the major
+    /// reference for the validity of any given plot property. This function
+    /// deals with non-data properties.
+    pub fn default_hash(&self) -> HashMap<String, String> {
+        let mut hash = HashMap::new();
+        hash.insert(String::from("color"), String::from("#000000"));
+        hash.insert(String::from("x"), String::from("None"));
+        hash.insert(String::from("y"), String::from("None"));
+        hash.insert(String::from("source"), String::from("None"));
+        match self {
+            MappingType::Line => {
+                hash.insert(String::from("width"), String::from("1"));
+                hash.insert(String::from("dash"), String::from("1"));
+            },
+            MappingType::Scatter => {
+                hash.insert(String::from("radius"), String::from("1"));
+            },
+            MappingType::Bar => {
+                hash.insert(String::from("center_anchor"), String::from("false"));
+                hash.insert(String::from("horizontal"), String::from("false"));
+                hash.insert(String::from("width"), String::from("None"));
+                hash.insert(String::from("height"), String::from("None"));
+                hash.insert(String::from("bar_width"), String::from("100"));
+                hash.insert(String::from("origin_x"), String::from("0"));
+                hash.insert(String::from("origin_y"), String::from("0"));
+                hash.insert(String::from("bar_spacing"), String::from("1"));
+            },
+            MappingType::Area => {
+                hash.insert(String::from("ymax"), String::from("None"));
+                hash.insert(String::from("opacity"), String::from("1.0"));
+            },
+            /*MappingType::Surface => {
+                hash.insert(String::from("z"), String::from("None"));
+                hash.insert(String::from("final_color"), String::from("#ffffff"));
+                hash.insert(String::from("z_min"), String::from("0.0"));
+                hash.insert(String::from("z_max"), String::from("1.0"));
+                hash.insert(String::from("opacity"), String::from("1.0"));
+            },*/
+            MappingType::Text => {
+                hash.insert(String::from("font"), String::from("Monospace Regular 12"));
+                hash.insert(String::from("text"), String::from("None"));
+            },
+            MappingType::Interval => {
+                unimplemented!()
+            }
+        }
+        hash
+    }
+}
 
 /*
 The design and layout are always applied to the panel. When single plots
@@ -47,7 +163,33 @@ impl DesignBuilder {
 
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum DesignError {
+
+    #[error("Invalid grid width")]
+    InvalidGridWidth,
+
+    #[error("Invalid grid color")]
+    InvalidGridColor,
+
+    #[error("Invalid background color")]
+    InvalidBackgroundColor
+}
+
 impl Design {
+
+    pub fn validate(&self) -> Result<(), DesignError> {
+        if self.grid_width < 0 || self.grid_width > 50 {
+            Err(DesignError::InvalidGridWidth)?;
+        }
+        if !crate::model::validate_color(&self.grid_color) {
+            Err(DesignError::InvalidGridColor)?;
+        }
+        if !crate::model::validate_color(&self.bg_color) {
+            Err(DesignError::InvalidBackgroundColor)?;
+        }
+        Ok(())
+    }
 
     pub fn new() -> Self {
         Self::default()
@@ -140,6 +282,23 @@ impl Default for Layout {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ScaleError {
+
+    #[error("Inverted range")]
+    InvertedRange,
+
+    #[error("Number of steps")]
+    StepNumber,
+
+    #[error("Invalid offset")]
+    InvalidOffset,
+
+    #[error("Invalid adjustment")]
+    InvalidAdjustment
+
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Scale {
     pub label : String,
@@ -154,6 +313,21 @@ pub struct Scale {
 }
 
 impl Scale {
+
+    pub fn validate(&self) -> Result<(), ScaleError> {
+        if self.from > self.to {
+            Err(ScaleError::InvertedRange)?;
+        }
+        if self.offset < 0 || self.offset > 100 {
+            Err(ScaleError::InvalidOffset)?;
+        }
+        if let Some(adj) = &self.adjust {
+            if Adjustment::from_str(adj).is_err() {
+                Err(ScaleError::InvalidAdjustment)?;
+            }
+        }
+        Ok(())
+    }
 
     pub fn new() -> Self {
         Scale::default()
@@ -634,6 +808,7 @@ impl From<Bar> for Mapping {
             center_anchor :  Some(center_anchor),
             horizontal : Some(horizontal),
             bar_width : Some(bar_width),
+            spacing : Some(bar_spacing as i32),
             ..Default::default()
         }
     }
@@ -643,26 +818,22 @@ impl From<Bar> for Mapping {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Mapping {
 
-    // Must be line|scatter|area|bar|surface|text|interval
+    // Must be line|scatter|area|bar|text|interval
     pub kind : String,
 
     // Shared by all mappings
     pub color : Option<String>,
     pub map : Option<Map>,
 
-    // area-specific
-    // pub ymin : Option<f64>,
-    // pub ymax : Option<f64>,
+    // Shared by line, bar and interval
+    pub width : Option<f64>,
+    pub spacing : Option<i32>,
 
     // text-specific
     pub font : Option<String>,
 
     // Scatter-specific
     pub radius : Option<f64>,
-
-    // Line, bar and  interval-specific
-    pub width : Option<f64>,
-    pub spacing : Option<i32>,
 
     // Interval-specific
     pub limits : Option<f64>,
@@ -675,6 +846,141 @@ pub struct Mapping {
     pub bar_spacing : Option<f64>,
     pub origin : Option<f64>,
 
+}
+
+fn hex_byte_at(full : &str, pos : Range<usize>) -> bool {
+    if let Some(sub) = full.get(pos) {
+        u8::from_str_radix(sub, 16).is_ok()
+    } else {
+        false
+    }
+}
+
+pub(crate) fn validate_color(s : &str) -> bool {
+    let has_rgb = s.starts_with("#") && hex_byte_at(s, 1..3) && hex_byte_at(s, 3..5) && hex_byte_at(s, 5..7);
+    match s.len() {
+        7 => has_rgb,
+        9 => has_rgb && hex_byte_at(s, 7..9),
+        _ => false
+    }
+}
+
+impl Mapping {
+
+    pub fn has_shared_property(&self) -> bool {
+        self.width.is_some() || self.spacing.is_some()
+    }
+
+    pub fn has_specific_property(&self, kind : MappingType) -> bool {
+        match kind {
+            MappingType::Bar => {
+                self.center_anchor.is_some() || self.horizontal.is_some() ||
+                    self.bar_width.is_some() || self.bar_spacing.is_some() || self.origin.is_some()
+            },
+            MappingType::Interval => {
+                self.limits.is_some() || self.vertical.is_some()
+            },
+            MappingType::Text => {
+                self.font.is_some()
+            },
+            MappingType::Scatter => {
+                self.radius.is_some()
+            },
+            _ => false
+        }
+    }
+
+    pub fn validate(&self) -> Result<(), MappingError> {
+        let ty = MappingType::from_str(&self.kind).ok_or(MappingError::InvalidKind)?;
+        if let Some(map) = &self.map {
+            let n = map.x.as_ref().map(|data| data.len() ).unwrap_or(0);
+            if let Some(y) = &map.y {
+                if y.len() != n {
+                    Err(MappingError::DataLength)?;
+                }
+            }
+            if let Some(z) = &map.z {
+                if z.len() != n {
+                    Err(MappingError::DataLength)?;
+                }
+            }
+            if let Some(t) = &map.text {
+                if t.len() != n {
+                    Err(MappingError::DataLength)?;
+                }
+            }
+        }
+        if let Some(color) = &self.color {
+            if !validate_color(&color[..]) {
+                Err(MappingError::InvalidColor)?;
+            }
+        }
+        match ty {
+            MappingType::Line => {
+                if self.has_specific_property(MappingType::Scatter) || self.has_specific_property(MappingType::Text) ||
+                self.has_specific_property(MappingType::Bar) || self.has_specific_property(MappingType::Interval) {
+                    Err(MappingError::InvalidProperty)?;
+                }
+            },
+            MappingType::Scatter => {
+                if self.has_specific_property(MappingType::Text) || self.has_specific_property(MappingType::Bar) ||
+                self.has_specific_property(MappingType::Interval) {
+                    Err(MappingError::InvalidProperty)?;
+                }
+                if self.has_shared_property() {
+                    Err(MappingError::InvalidProperty)?;
+                }
+            },
+            MappingType::Text => {
+                if self.has_specific_property(MappingType::Scatter) || self.has_specific_property(MappingType::Bar) ||
+                self.has_specific_property(MappingType::Interval) {
+                    Err(MappingError::InvalidProperty)?;
+                }
+                if self.has_shared_property() {
+                    Err(MappingError::InvalidProperty)?;
+                }
+            },
+            MappingType::Area => {
+                if self.has_specific_property(MappingType::Scatter) || self.has_specific_property(MappingType::Text) ||
+                self.has_specific_property(MappingType::Bar) || self.has_specific_property(MappingType::Interval) {
+                    Err(MappingError::InvalidProperty)?;
+                }
+                if self.has_shared_property() {
+                    Err(MappingError::InvalidProperty)?;
+                }
+            },
+            MappingType::Interval => {
+                if self.has_specific_property(MappingType::Scatter) || self.has_specific_property(MappingType::Text) ||
+                self.has_specific_property(MappingType::Bar) {
+                    Err(MappingError::InvalidProperty)?;
+                }
+            },
+            MappingType::Bar => {
+                if self.has_specific_property(MappingType::Scatter) || self.has_specific_property(MappingType::Text) ||
+                self.has_specific_property(MappingType::Interval) {
+                    Err(MappingError::InvalidProperty)?;
+                }
+            }
+        }
+        Ok(())
+    }
+
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum MappingError {
+
+    #[error("Invalid kind")]
+    InvalidKind,
+
+    #[error("Data length")]
+    DataLength,
+
+    #[error("Invalid property")]
+    InvalidProperty,
+
+    #[error("Invalid RGB/RGBA color")]
+    InvalidColor
 }
 
 // Plot carries design only if not within a larger panel.

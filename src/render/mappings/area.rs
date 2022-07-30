@@ -13,6 +13,7 @@ use super::*;
 use std::cmp::*;
 use super::super::MappingProperty;
 use std::borrow::Borrow;
+use crate::model::MappingType;
 
 #[derive(Debug, Clone)]
 pub struct AreaMapping {

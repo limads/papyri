@@ -12,6 +12,7 @@ use std::error::Error;
 use std::fmt::Debug;
 use base64;
 use crate::render::PlotError;
+use crate::model::MappingType;
 
 pub mod area;
 
@@ -21,86 +22,11 @@ pub mod line;
 
 pub mod scatter;
 
-pub mod surface;
+// pub mod surface;
 
 pub mod text;
 
 pub mod interval;
-
-pub enum MappingType {
-    Line,
-    Scatter,
-    Bar,
-    Area,
-    Surface,
-    Text,
-    Interval
-}
-
-impl MappingType {
-
-    pub fn from_str(name : &str) -> Option<Self> {
-        match name {
-            "line" => Some(MappingType::Line),
-            "scatter" => Some(MappingType::Scatter),
-            "bar" => Some(MappingType::Bar),
-            "area" => Some(MappingType::Area),
-            "surface" => Some(MappingType::Surface),
-            "text" => Some(MappingType::Text),
-            "interval" => Some(MappingType::Interval),
-            _ => None
-        }
-    }
-
-    /// Returns a default property map for this mapping type. This is the major
-    /// reference for the validity of any given plot property. This function
-    /// deals with non-data properties.
-    pub fn default_hash(&self) -> HashMap<String, String> {
-        let mut hash = HashMap::new();
-        hash.insert(String::from("color"), String::from("#000000"));
-        hash.insert(String::from("x"), String::from("None"));
-        hash.insert(String::from("y"), String::from("None"));
-        hash.insert(String::from("source"), String::from("None"));
-        match self {
-            MappingType::Line => {
-                hash.insert(String::from("width"), String::from("1"));
-                hash.insert(String::from("dash"), String::from("1"));
-            },
-            MappingType::Scatter => {
-                hash.insert(String::from("radius"), String::from("1"));
-            },
-            MappingType::Bar => {
-                hash.insert(String::from("center_anchor"), String::from("false"));
-                hash.insert(String::from("horizontal"), String::from("false"));
-                hash.insert(String::from("width"), String::from("None"));
-                hash.insert(String::from("height"), String::from("None"));
-                hash.insert(String::from("bar_width"), String::from("100"));
-                hash.insert(String::from("origin_x"), String::from("0"));
-                hash.insert(String::from("origin_y"), String::from("0"));
-                hash.insert(String::from("bar_spacing"), String::from("1"));
-            },
-            MappingType::Area => {
-                hash.insert(String::from("ymax"), String::from("None"));
-                hash.insert(String::from("opacity"), String::from("1.0"));
-            },
-            MappingType::Surface => {
-                hash.insert(String::from("z"), String::from("None"));
-                hash.insert(String::from("final_color"), String::from("#ffffff"));
-                hash.insert(String::from("z_min"), String::from("0.0"));
-                hash.insert(String::from("z_max"), String::from("1.0"));
-                hash.insert(String::from("opacity"), String::from("1.0"));
-            },
-            MappingType::Text => {
-                hash.insert(String::from("font"), String::from("Monospace Regular 12"));
-                hash.insert(String::from("text"), String::from("None"));
-            },
-            MappingType::Interval => {
-                unimplemented!()
-            }
-        }
-        hash
-    }
-}
 
 fn update_single_data_from_json(x : &mut Vec<f64>, mut rep : crate::model::Mapping) {
     if let Some(ref mut map) = rep.map {
@@ -174,10 +100,10 @@ pub fn new_from_json(mut rep : crate::model::Mapping) -> Result<Box<dyn Mapping>
             let bar : bar::BarMapping = Default::default();
             Box::new(bar)
         },
-        "surface" => {
-            let surface : surface::SurfaceMapping = Default::default();
-            Box::new(surface)
-        },
+        // "surface" => {
+        //    let surface : surface::SurfaceMapping = Default::default();
+        //    Box::new(surface)
+        // },
         "text" => {
             let text : text::TextMapping = Default::default();
             Box::new(text)
@@ -190,6 +116,7 @@ pub fn new_from_json(mut rep : crate::model::Mapping) -> Result<Box<dyn Mapping>
             return Err(Box::new(PlotError::InvalidData("Invalid mapping type")));
         }
     };
+    rep.validate()?;
     mapping.update_from_json(rep);
     Ok(mapping)
 }

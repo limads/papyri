@@ -19,6 +19,7 @@ use std::str::FromStr;
 use std::process::Command;
 use tempfile;
 use std::fs;
+use crate::model::Adjustment;
 
 pub mod mappings;
 
@@ -40,7 +41,7 @@ pub use mappings::scatter::*;
 
 pub use mappings::line::*;
 
-pub use mappings::surface::*;
+// pub use mappings::surface::*;
 
 pub use mappings::text::*;
 
@@ -51,29 +52,6 @@ pub use mappings::interval::*;
 mod text;
 
 use text::FontData;
-
-//use sync::*;
-/*impl Mapping for BarMapping {
-}*/
-
-/*#[derive(Debug)]
-pub enum PlotError {
-    PropertyNotFound,
-    ViolateBounds
-}
-
-impl Display for PlotError {
-
-}
-
-impl Error for PlotError {
-
-}*/
-
-/// Move old libxml logic to here.
-mod xml {
-
-}
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum GroupSplit {
@@ -232,9 +210,6 @@ pub struct Panel {
 
     dimensions : (usize, usize),
 
-    // parser : Parser,
-
-    // doc : Document
 }
 
 unsafe impl Send for Panel { }
@@ -294,6 +269,10 @@ fn update_dims_from_env(dims : &mut (usize, usize)) {
 }
 
 impl Panel {
+
+    pub fn get_dimensions(&self) -> (usize, usize) {
+        self.dimensions
+    }
 
     pub fn dimensions(mut self, w : u32, h : u32) -> Self {
         self.dimensions.0 = w as usize;
@@ -412,12 +391,10 @@ impl Panel {
 
             // Just overwrite them if set at the panel level.
             if plot_def.design.is_some() {
-                // return Err(format!("Panel definitions require plots without a design field"));
                 plot_def.design = None;
 
             }
             if plot_def.layout.is_some() {
-                // return Err(format!("Panel definitions require plots without a layout field"));
                 plot_def.layout = None;
             }
 
@@ -475,116 +452,9 @@ impl Panel {
         }
     }
 
-    /*pub fn new(layout_path : String) -> Result<Self, String> {
-        let plots = Vec::new();
-        let mut parser : Parser = Default::default();
-        let doc = parser.parse_file(&layout_path)
-            .map_err(|e| format!("Failed parsing XML file: {}", e) )?;
-        let root = doc.get_root_element().ok_or(format!("No root node"))
-            .map_err(|_| format!("No root node"))?;
-
-        let design_node = root
-            .findnodes("object[@class='design']")
-            .ok()
-            .and_then(|nodes| nodes.first().cloned() )
-            .ok_or(format!("No design node"))?;
-        let design = PlotDesign::new(&design_node)
-            .map_err(|e| format!("Failed instantiating design: {}", e))?;
-
-        let dim_node = root
-            .findnodes("object[@class='dimensions']")
-            .ok()
-            .and_then(|nodes| nodes.first().cloned() )
-            .ok_or(format!("No dimensions node"))?;
-        let dims = utils::children_as_hash(&dim_node, "property");
-
-        let width = dims.get("width")
-            .and_then(|w| w.parse::<usize>().ok() )
-            .ok_or(format!("Missing width property"))?;
-        let height = dims.get("height")
-            .and_then(|h| h.parse::<usize>().ok() )
-            .ok_or(format!("Missing height property"))?;
-        let mut plot_group = Self {
-            // parser,
-            doc,
-            plots,
-            split : GroupSplit::Unique,
-            v_ratio : 0.5,
-            h_ratio : 0.5,
-            design,
-            dimensions : (width, height)
-        };
-        plot_group.load_layout(layout_path)?;
-        Ok(plot_group)
-    }*/
-
-    /*pub fn update_text_mapping_with_adjustment(&mut self, active : usize, key : &str, pos : Vec<Vec<f64>>, text : Vec<String>, adj : Adjustment) {
-        match self.update_mapping(active, &key, &pos) {
-            Err(e) => { println!("Error updating text mapping: {}", e); },
-            _ => {
-                if let Err(e) = self.update_mapping_text(active, &key, &text) {
-                    println!("Error adding text to mapping: {}", e);
-                }
-            }
-        }
-        self.adjust_scales(active, adj, adj);
-    }
-
-    pub fn update_mapping_with_adjustment(&mut self, active : usize, key : &str, data : Vec<Vec<f64>>, adj : Adjustment) {
-        if let Err(e) = self.update_mapping(active, &key, &data) {
-            println!("Error updating mapping {:}: {}", key, e);
-        }
-        self.adjust_scales(active, adj, adj);
-    }*/
-
-    /*/// Adjust scales so they fit the current data
-    pub fn adjust_scales(&mut self, active : usize, adj_x : Adjustment, adj_y : Adjustment) {
-        if let Some(((new_xmin, new_xmax), (new_ymin, new_ymax))) = self.data_limits(active) {
-            context_mapper::adjust_segment(&mut self.plots[active].x, adj_x, new_xmin, new_xmax);
-            context_mapper::adjust_segment(&mut self.plots[active].y, adj_y, new_ymin, new_ymax);
-        } else {
-            println!("Could not retrieve data limits");
-        }
-    }*/
     pub fn adjust_scales(&mut self) {
         self.plots.iter_mut().for_each(|pl| pl.adjust_scales() );
     }
-
-    /*pub fn set_dimensions(&mut self, opt_w : Option<usize>, opt_h : Option<usize>) {
-        let root = self.doc.get_root_element().unwrap();
-        let dim_node = root
-            .findnodes("object[@class='dimensions']")
-            .expect("No dimensions node")
-            .first()
-            .cloned()
-            .expect("No dimensions node");
-        let set_new = |node : &Node, name : &str, value : usize| {
-            // println!("Searching for {}", name);
-            // println!("At {:?}", node.get_child_nodes().iter().map(|c| c.get_property("name")).collect::<Vec<_>>() );
-            match node.findnodes(&format!("property[@name='{}']", name)) {
-                Ok(mut props) => {
-                    if let Some(p) = props.iter_mut().next() {
-                        if let Err(e) = p.set_content(&(value.to_string())) {
-                            println!("Error setting node content: {}", e);
-                            return;
-                        }
-                    } else {
-                        println!("No property named {} found", name);
-                    }
-                },
-                _ => { println!("Failed at finding property {}", name); }
-            }
-        };
-
-        if let Some(w) = opt_w {
-            self.dimensions.0 = w;
-            set_new(&dim_node, "width", w);
-        }
-        if let Some(h) = opt_h {
-            self.dimensions.1 = h;
-            set_new(&dim_node, "height", h);
-        }
-    }*/
 
     pub fn clear_all_data(&mut self) {
         for area in self.plots.iter_mut() {
@@ -763,8 +633,6 @@ impl Panel {
             let scale_factor = match (&self.split, i) {
                 (GroupSplit::Horizontal, 0) => h_v_full,
                 (GroupSplit::Horizontal, 1) => h_compl_v_full,
-                /*(GroupSplit::Vertical, 0) => h_v_full,
-                (GroupSplit::Vertical, 1) => h_compl_v_full,*/
                 (GroupSplit::Vertical, 0) => h_full_v,
                 (GroupSplit::Vertical, 1) => h_full_v_compl,
                 (GroupSplit::Four, 0) => diag,
@@ -788,190 +656,13 @@ impl Panel {
             let origin = (x as f64 + origin_offset.0, y as f64 + origin_offset.1);
             let size = ((w as f64 * scale_factor.0) as i32, (h as f64 * scale_factor.1) as i32);
             ctx.save();
-            // ctx.move_to(0.0, 0.0);
             ctx.translate(origin.0, origin.1);
-            // println!("i: {}; origin: {:?}, size: {:?}", i, origin, size);
-            // println!("{:?}", plot.mapper);
             plot.draw_plot(&ctx, &self.design, size.0, size.1);
             ctx.restore();
         }
-        //println!("--");
     }
 
-    /*pub fn reload_layout_data(&mut self) -> Result<(), Box<dyn Error>> {
-        let _root_el = self.doc.get_root_element()
-            .expect("Root node not found");
-        // for plot in self.plots.iter_mut() {
-        //    plot.reload_layout_node( /*node.clone()*/ )?;
-        // }
-        Ok(())
-    }*/
-
-    /*pub fn update_after_parsed_content(&mut self) -> Result<(), String> {
-
-        use GroupSplit::*;
-
-        let root_el = self.doc.get_root_element()
-            .ok_or(format!("Root node not found"))?;
-        if &root_el.get_name()[..] != "Panel" {
-            return Err(format!("Root node should be called Panel"));
-        }
-        self.plots.clear();
-        let mut found_split = false;
-        for node in root_el.get_child_nodes() {
-            //println!("Node name: {}", node.get_name());
-            if &node.get_name()[..] == "property" {
-                //println!("Property: {:?}", node.get_attribute("name"));
-                match node.get_attribute("name").as_ref().and_then(|s| Some(&s[..]) ) {
-                    Some("vertical_ratio") => {
-                        self.v_ratio = node.get_content().parse()
-                            .map_err(|_| format!("Unabe to parse vertical ratio"))?;
-                        // println!("v ratio set to {}", self.v_ratio);
-                    },
-                    Some("horizontal_ratio") => {
-                        self.h_ratio = node.get_content().parse()
-                            .map_err(|_| format!("Unabe to parse horizontal ratio"))?;
-                        // println!("h ratio set to {}", self.h_ratio);
-                    },
-                    Some("split") => {
-                        found_split = true;
-                        match GroupSplit::from_str(&node.get_content()[..]) {
-                            Ok(split) => {
-                                self.split = split;
-                            },
-                            Err(_) => {
-                                return Err(String::from("Unrecognized split value"));
-                            }
-                        }
-                    },
-                    _ => return Err(String::from("Unknown property"))
-                }
-            }
-            if &node.get_name()[..] == "Plot" {
-                self.plots.push(Plot::new_from_node(node.clone()));
-            }
-        }
-        if self.plots.len() == 0 {
-            return Err("Root node Panel does not contain any Plot children.".into());
-        }
-        if !found_split {
-            self.split = Unique;
-        }
-        match self.split {
-            Unique => if self.plots.len() != 1 {
-                return Err("'None' split require 1 plot".into());
-            },
-            Vertical => if self.plots.len() != 2 {
-                return Err("Vertical split require 2 plots".into());
-            },
-            Horizontal => if self.plots.len() != 2 {
-                return Err("Horizontal split require 2 plots".into());
-            },
-            Four => if self.plots.len() != 4 {
-                return Err("'Both' split require 4 plots".into());
-            },
-            ThreeLeft | ThreeTop | ThreeRight | ThreeBottom => if self.plots.len() != 3 {
-                return Err("'Three' split require 3 plots".into());
-            }
-        }
-        // self.reload_layout_data()
-        //    .map_err(|e| format!("Could not reload layout data: {}", e))?;
-        for plot in self.plots.iter_mut() {
-            // plot.reload_mappings()
-            //    .map_err(|e| format!("Could not reload mappings from informed layout: {}", e))?;
-        }
-        // println!("h: {}; v : {}; split: {:?}", self.h_ratio, self.v_ratio, self.split);
-        Ok(())
-    }*/
-
-    /*pub fn load_layout_from_string(&mut self, content : String) -> Result<(), String> {
-        let mut parser : Parser = Default::default();
-        self.doc = parser.parse_string(content)
-            .map_err(|e| format!("Failed parsing XML: {}", e) )?;
-        self.update_after_parsed_content()
-    }*/
-
-    /*pub fn load_layout(&mut self, path : String) -> Result<(), String> {
-        // TODO falling here when closing connection to SQLite database
-        let mut parser : Parser = Default::default();
-        self.doc = parser.parse_file(&path)
-            .map_err(|e| format!("Failed parsing XML: {}", e) )?;
-        self.update_after_parsed_content()
-    }*/
-
-    /*pub fn save_layout(&self, path : String) {
-        // let content = self.get_layout_as_text();
-        match File::create(path) {
-            Ok(mut f) => {
-                /*if let Err(e) = f.write_all(content.as_bytes()) {
-                    println!("Error writing to file: {}", e);
-                }*/
-                let mut options : SaveOptions = Default::default();
-                options.format = true;
-                options.non_significant_whitespace = true;
-                f.write_all(self.doc.to_string_with_options(options).as_bytes())
-                    .map_err(|e| { println!("{}", e) });
-            },
-            Err(e) => println!("Error creating file: {}", e)
-        }
-        //self.doc.save_file(&path)
-        //    .expect("Could not save file");
-    }*/
-
-    /*pub fn get_layout_as_text(&self) -> String {
-        let mut opts : SaveOptions = Default::default();
-        opts.format = true;
-        opts.non_significant_whitespace = true;
-        //self.doc.to_string(opts)
-        self.doc.to_string_with_options(opts)
-    }*/
-
-    /*pub fn update_design_directly(&mut self, prop : &str, val : &str) {
-        /*match prop {
-            "bg_color" =>
-            "grid_color"
-            "grid_width"
-            "font"
-        }*/
-    }*/
-
-    /*pub fn update_design(&mut self, property : &str, value : &str) {
-        // println!("Updating design at {} to {}", property, value);
-        if property.is_empty() || value.is_empty() {
-            // println!("Informed empty property!");
-            return;
-        }
-        let root = self.doc.get_root_element().unwrap();
-        let design_node = root
-            .findnodes("object[@class='design']")
-            .expect("No design node")
-            .first().cloned().expect("No design node");
-        match design_node.findnodes(&property) {
-            Ok(mut props) => {
-                if let Some(p) = props.iter_mut().next() {
-                    if let Err(e) = p.set_content(&value) {
-                        println!("Error setting node content: {}", e);
-                        return;
-                    }
-                    self.design = PlotDesign::new(&design_node)
-                        .expect("Failed loading plot design");
-                } else {
-                    println!("No property named {} found", property);
-                }
-            },
-            _ => { println!("Failed at finding property {}", property); }
-        }
-    }*/
-
-    /*pub fn update_plot_property(&mut self, ix: usize, property : &str, value : &str) {
-        // println!("Updating {} at {} to {}", ix, property, value);
-        if let Err(e) = self.plots[ix].update_layout(property, value) {
-            println!("{}", e);
-        }
-    }*/
-
     pub fn update_mapping(&mut self, ix : usize, id : &str, data : &Vec<Vec<f64>>) -> Result<(), Box<dyn Error>> {
-        // println!("Updating {} at {} to {:?}", ix, id, data);
         self.plots[ix].update_mapping(id, data)
     }
 
@@ -987,26 +678,9 @@ impl Panel {
         self.plots[ix].update_source(id, source)
     }
 
-    /*pub fn add_mapping(
-        &mut self,
-        ix : usize,
-        mapping_index : String,
-        mapping_type : String,
-        mapping_source : String,
-        col_names : Vec<String>
-    ) -> Result<(), String> {
-        self.plots[ix].add_mapping(mapping_index, mapping_type, mapping_source, col_names, &self.doc)
-    }*/
-
     pub fn ordered_col_names(&self, ix : usize, id : &str) -> Vec<(String, String)> {
         self.plots[ix].mapping_column_names(id)
     }
-
-   /*pub fn remove_mapping(&mut self, ix : usize, id : &str) {
-        if let Err(e) = self.plots[ix].remove_mapping(id) {
-            println!("{}", e);
-        }
-    }*/
 
     pub fn scale_info(&self, ix : usize, scale : &str) -> HashMap<String, String> {
         self.plots[ix].scale_info(scale)
@@ -1040,29 +714,6 @@ impl Panel {
             self.v_ratio = vert;
         }
     }
-
-    /*pub fn reassign_plot(
-        &mut self,
-        src_plot : usize,
-        src_ix : &str,
-        dst_plot : usize
-    ) -> Result<(), String> {
-        let (mapping, mut mapping_node) = if let Some(mut old_area) = self.plots.get_mut(src_plot) {
-            match old_area.remove_mapping(src_ix) {
-                Ok((mapping, mapping_node)) => (mapping, mapping_node),
-                Err(e) => return Err(format!("{}",e))
-            }
-        } else {
-            return Err(format!("Invalid source plot"));
-        };
-        if let Some(mut new_area) = self.plots.get_mut(dst_plot) {
-            new_area.node.add_child(&mut mapping_node).map_err(|e| format!("{}", e) )?;
-            new_area.mappings.push(mapping);
-            Ok(())
-        } else {
-            Err(format!("Invalid destination plot"))
-        }
-    }*/
 
     // Number of mappings, for each plot
     pub fn n_mappings(&self) -> Vec<usize> {
@@ -1103,8 +754,6 @@ pub struct Plot {
     mapper : ContextMapper,
     x : Scale,
     y : Scale,
-    // frozen : bool,
-    // node : Node
 }
 
 impl Default for Plot {
@@ -1113,8 +762,7 @@ impl Default for Plot {
         let mapper : ContextMapper = Default::default();
         let x : Scale = Default::default();
         let y : Scale = Default::default();
-        // let frozen = false;
-        Plot{ mappings, mapper, x, y, /*frozen,*/ /*node : Node::null()*/ }
+        Plot{ mappings, mapper, x, y, }
     }
 }
 
@@ -1148,26 +796,6 @@ impl Display for PlotError {
 impl error::Error for PlotError {
 
 }
-
-/*impl showable::Show for Plot {
-    fn show(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.wrap().svg().unwrap())
-    }
-
-    fn modality(&self) -> showable::Modality {
-        showable::Modality::XML
-    }
-}
-
-impl showable::Show for Panel {
-    fn show(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.clone().svg().unwrap())
-    }
-
-    fn modality(&self) -> showable::Modality {
-        showable::Modality::XML
-    }
-}*/
 
 impl Plot {
 
@@ -1262,17 +890,14 @@ impl Plot {
 
     pub fn new_from_model(mut rep : crate::model::Plot) -> Result<Plot, Box<dyn Error>> {
 
-        // println!("JSON rep: {:?}", rep);
-
         let mut mappings = Vec::new();
 
-        // println!("Received mappings: {:?}", rep.mappings);
         for mapping in rep.mappings.iter_mut() {
             mappings.push(mappings::new_from_json(mem::take(mapping))?);
         }
 
-        let x = Scale::new_from_json(rep.x.clone()).ok_or(PlotError::Parsing)?;
-        let y = Scale::new_from_json(rep.y.clone()).ok_or(PlotError::Parsing)?;
+        let x = Scale::new_from_json(rep.x.clone())?;
+        let y = Scale::new_from_json(rep.y.clone())?;
 
         let mapper = ContextMapper::new(
             x.from,
@@ -1290,12 +915,8 @@ impl Plot {
             mapper,
             x,
             y,
-            // frozen : false,
-            // node : Node::null()
         };
         area.adjust_scales();
-
-        // println!("Plot area = {:?}", area);
 
         // We do not load any design definitions here, but rather at Panel::new(),
         // since the design might be defined at Panel-level.
@@ -1313,39 +934,19 @@ impl Plot {
         pl
     }
 
-    /*pub fn new_from_node(node : Node) -> Plot {
-
-        // if let Err(e) = pl_area.reload_layout_data() {
-        //   println!("Error when reloading layout data: {}", e.description());
-        // }
-        Default::default()
-    }*/
-
-    /*fn save(&self, path : String, w : i32, h : i32) {
-
-    }*/
-
     fn draw_plot(&mut self, ctx: &Context, design : &PlotDesign, w : i32, h : i32) {
-        // println!("Drawn plot : {:?}", self);
         self.mapper.update_dimensions(w, h);
-        // If frozen, do not redraw background/grid.
-        // Draw only frozen mapping increment.
         self.draw_background(ctx, design);
         self.draw_grid(ctx, design);
         for mapping in self.mappings.iter() {
-            // println!("Mapping drawn");
             mapping.draw(&self.mapper, &ctx);
         }
     }
-
-    //fn on_draw(&self, ctx : &Context) {
-    //}
 
     pub fn max_data_limits(&self) -> Option<((f64, f64), (f64, f64))> {
         let mut x_lims = Vec::new();
         let mut y_lims = Vec::new();
         for (xl, yl) in self.mappings.iter().filter_map(|m| m.data_limits() ) {
-            // println!("{:?}", (xl, yl));
             x_lims.push(xl);
             y_lims.push(yl);
         }
@@ -1356,20 +957,7 @@ impl Plot {
         Some(((min_x, max_x), (min_y, max_y)))
     }
 
-    pub fn freeze_at_mapping(&mut self, _mapping : &str) -> Result<(),()> {
-        // Call mapping.setup
-        // set frozen to true
-        Err(())
-    }
-
-    // pub fn unfreeze(&mut self) {
-    //    self.frozen = false;
-    // }
-
-    // let props = ["from", "to", "n_intervals", "invert", "log_scaling"];
-
-    // TODO improve error handling here.
-    fn read_grid_segment(
+    /*fn read_grid_segment(
         &self,
         props : HashMap<String, String>
     ) -> Result<Scale, Box<dyn Error>> {
@@ -1383,209 +971,6 @@ impl Plot {
         let label = props["label"].clone();
         Ok( Scale::new_full(
             label, precision, from, to, nint, log, invert, offset, Adjustment::Off) )
-    }
-
-    /*/// Reloads all mappings from XML definition,
-    /// clearing any existent data.
-    pub fn reload_mappings(&mut self) -> Result<(),String> {
-        // let root = self.doc.get_root_element()
-        //    .expect("Root node not found");
-        self.mappings.clear();
-        if let Ok(mappings) = self.node.findnodes("object[@class='mapping']") {
-            //println!("mappings to add -> {:?}", mappings);
-            for (i, mapping_node) in mappings.iter().enumerate() {
-                let mapping_ix = mapping_node
-                    .get_attribute("index")
-                    .ok_or(format!("Missing 'index' attribute for mapping at position {}", i))?;
-                let mapping_type = mapping_node
-                    .get_attribute("type")
-                    .ok_or(format!("Missing 'type' attribute for mapping {}", mapping_ix))?;
-                let mapping : Option<Box<dyn Mapping>> = match &mapping_type[..] {
-                    "line" => Some( Box::new(LineMapping::new(&mapping_node)?) ),
-                    "scatter" => Some( Box::new(ScatterMapping::new(&mapping_node)?) ),
-                    "bar" => Some( Box::new(BarMapping::new(&mapping_node)?) ),
-                    "text" => Some( Box::new(TextMapping::new(&mapping_node)?) ),
-                    "area" => Some( Box::new(AreaMapping::new(&mapping_node)?) ),
-                    "surface" => Some( Box::new(SurfaceMapping::new(&mapping_node)?) ),
-                    _ => None
-                };
-                if let Some(m) = mapping{
-                    self.mappings.insert(mapping_ix.parse::<usize>().unwrap(), m);
-                } else {
-                    return Err(format!("Unrecognized mapping type: {}", mapping_type));
-                }
-            }
-            Ok(())
-        } else {
-            Err(format!("Error finding mapping nodes"))
-        }
-    }*/
-
-    /*/// Parses the XML file definition at self.doc
-    /// and updates all layout information used for plotting.
-    /// Does not mess with mapping data.
-    pub fn reload_layout_node(&mut self /*, node : Node*/ ) -> Result<(), Box<dyn Error>> {
-        // TODO confirm this does not need to be reset here.
-        // self.node = node;
-        // let root = self.doc.get_root_element()
-        //    .expect("Root node not found");
-        // println!("updating node: {:?} position: {:?}", self.node.get_name(), self.node.get_property("position"));
-        let xprops = utils::children_as_hash(
-            &self.node, "object[@name='x']/property");
-        // println!("xprops: {:?}", xprops);
-        let yprops = utils::children_as_hash(
-            &self.node, "object[@name='y']/property");
-        self.x = self.read_grid_segment(xprops)?;
-        // println!("x grid: {:?}", self.x);
-        self.y = self.read_grid_segment(yprops)?;
-        self.mapper = ContextMapper::new(self.x.from, self.x.to,
-            self.y.from, self.y.to, self.x.log, self.y.log,
-            self.x.invert, self.y.invert);
-        Ok(())
-    }*/
-
-    /*fn new_base_mapping_node(
-        &self,
-        mapping_type : &str,
-        mapping_index : &str,
-        doc : &Document
-    ) -> Result<Node,Box<dyn Error>> {
-        let mut new_mapping = Node::new("object", Option::None, &doc)
-            .unwrap();
-        new_mapping.set_attribute("class", "mapping")?;
-        new_mapping.set_attribute("type", &mapping_type)?;
-        new_mapping.set_attribute("index", &mapping_index)?;
-
-        /*let mut color_prop = Node::new(
-            "property", Option::None, &self.doc)
-            .unwrap();
-        color_prop.set_attribute("name", "color")?;
-        color_prop.set_content("#000000")?;
-        new_mapping.add_child(&mut color_prop)?;*/
-        Ok(new_mapping)
-    }
-
-    pub fn add_mapping(
-        &mut self,
-        mapping_index : String,
-        mapping_type : String,
-        mapping_source : String,
-        col_names : Vec<String>,
-        doc : &Document
-    ) -> Result<(), String> {
-        //let mut root = self.doc.get_root_element().expect("No root");
-        let mut new_mapping = self.new_base_mapping_node(
-            &mapping_type[..],
-            &mapping_index[..],
-            &doc
-        ).map_err(|e| format!("{}", e) )?;
-
-        if let Some(mtype) = MappingType::from_str(&mapping_type[..]) {
-
-            let mut mapping_data = mtype.default_hash();
-            *(mapping_data.get_mut("source").unwrap()) = mapping_source.clone();
-
-            utils::populate_node_with_hash(
-                &doc,
-                &mut new_mapping,
-                mapping_data
-            ).map_err(|e| format!("{}", e) )?;
-
-            let m_ix : usize = mapping_index.parse::<usize>().map_err(|e| format!("{}", e) )?;
-            if m_ix > self.mappings.len() {
-                return Err(format!(
-                    "Tried to insert mapping at position {}, but plot has only {} elements",
-                    m_ix, self.mappings.len()
-                ));
-            }
-
-            // println!("Received col names: {:?}", col_names);
-            match mtype {
-                MappingType::Line => {
-                    let mut line_mapping = LineMapping::new(&new_mapping)?;
-                    line_mapping.set_source(mapping_source);
-                    line_mapping.set_col_names(col_names);
-                    self.mappings.insert(m_ix, Box::new(line_mapping));
-                },
-                MappingType::Scatter => {
-                    let mut scatter_mapping = ScatterMapping::new(&new_mapping)?;
-                    scatter_mapping.set_source(mapping_source);
-                    scatter_mapping.set_col_names(col_names);
-                    self.mappings.insert(m_ix, Box::new(scatter_mapping));
-                },
-                MappingType::Bar => {
-                    let mut bar_mapping = BarMapping::new(&new_mapping)?;
-                    bar_mapping.set_source(mapping_source);
-                    bar_mapping.set_col_names(col_names);
-                    self.mappings.insert(m_ix, Box::new(bar_mapping));
-                },
-                MappingType::Text => {
-                    let mut text_mapping = TextMapping::new(&new_mapping)?;
-                    text_mapping.set_source(mapping_source);
-                    text_mapping.set_col_names(col_names);
-                    self.mappings.insert(m_ix, Box::new(text_mapping));
-                },
-                MappingType::Area => {
-                    let mut area_mapping = AreaMapping::new(&new_mapping)?;
-                    area_mapping.set_source(mapping_source);
-                    area_mapping.set_col_names(col_names);
-                    self.mappings.insert(m_ix, Box::new(area_mapping));
-                },
-                MappingType::Surface => {
-                    let mut surface_mapping = SurfaceMapping::new(&new_mapping)?;
-                    surface_mapping.set_source(mapping_source);
-                    surface_mapping.set_col_names(col_names);
-                    self.mappings.insert(m_ix, Box::new(surface_mapping));
-                },
-                MappingType::Interval => {
-                    let mut intv_mapping = IntervalMapping::new(&new_mapping)?;
-                    intv_mapping.set_source(mapping_source);
-                    intv_mapping.set_col_names(col_names);
-                    self.mappings.insert(m_ix, Box::new(intv_mapping));
-                }
-            }
-
-            let updated_props = self.mappings[m_ix].properties();
-
-            // println!("Updated mapping properties: {:?}", updated_props);
-
-            utils::edit_node_with_hash(
-                &doc,
-                &updated_props,
-                &mut new_mapping
-            );
-            self.node.add_child(&mut new_mapping)?;
-
-            // TODO verify if this is necessary!!
-            // self.doc.set_root_element(&root);
-        } else {
-            return Err(format!("Unrecognized mapping {}", mapping_type));
-        }
-
-        /*if mapping_type == "line" {
-            let mtype = MappingType::Line;
-
-            let mut width_property = Node::new(
-                "property", Option::None, &self.doc).unwrap();
-            let mut dash_property = Node::new(
-                "property", Option::None, &self.doc).unwrap();
-            width_property.set_attribute("name", "width")?;
-            dash_property.set_attribute("name", "dash")?;
-            width_property.set_content("1")?;
-            dash_property.set_content("1")?;
-            new_mapping.add_child(&mut width_property)?;
-            new_mapping.add_child(&mut dash_property)?;
-            let line_mapping = LineMapping::new(&new_mapping);
-            println!("{:?}", mapping_name.clone());
-            self.mappings.insert(mapping_name, Box::new(line_mapping));
-            root.add_child(&mut new_mapping)?;
-            self.doc.set_root_element(&root);
-        }*/
-        //if self.reload_layout_data().is_err() {
-        //    println!("Problem reloading data after adding new mapping");
-        //}
-
-        Ok(())
     }*/
 
     fn accomodate_dimension(

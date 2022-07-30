@@ -1,5 +1,6 @@
 use std::ops::Add;
-use super::{context_mapper, Adjustment};
+use super::{context_mapper};
+use crate::model::Adjustment;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Coord2D {
