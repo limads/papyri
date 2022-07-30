@@ -1,5 +1,3 @@
-#![allow(warnings)]
-
 use cairo::Context;
 use std::default::Default;
 use std::collections::HashMap;
