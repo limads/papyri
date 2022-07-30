@@ -251,6 +251,10 @@ impl fmt::Debug for Panel {
 
 }
 
+#[derive(Debug, thiserror::Error)]
+#[error("{0}")]
+pub struct FileError(String);
+
 #[derive(Debug, Clone, Copy)]
 pub enum Orientation {
     Horizontal,
@@ -467,7 +471,7 @@ impl Panel {
             self.dimensions.1 as i32,
         )?;
         let ctx = Context::new(&surf).unwrap();
-        self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
+        self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32)?;
         let mut buf = Vec::new();
         surf.write_to_png(&mut buf)?;
         Ok(buf)
@@ -487,7 +491,7 @@ impl Panel {
         ).map_err(|e| format!("Error creating SVG surface: {}", e) )?;
 
         let ctx = Context::new(&surf).unwrap();
-        self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
+        self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32)?;
 
         let stream = surf.finish_output_stream().unwrap();
 
@@ -526,12 +530,12 @@ impl Panel {
         Ok(())
     }
 
-    pub fn draw_to_file(&mut self, path : &str) -> Result<(), String> {
+    pub fn draw_to_file(&mut self, path : &str) -> Result<(), Box<dyn Error>> {
         // TODO Error creating SVG surface: "error while writing to output stream
 
         let path = Path::new(path);
         if !path.parent().map(|par| par.exists() ).unwrap_or(false) {
-            return Err(format!("Parent directory for image path {} does not exists", path.to_str().unwrap()));
+            Err(FileError(format!("Parent directory for image path {} does not exists", path.to_str().unwrap())))?;
         }
 
         match path.extension().and_then(|e| e.to_str() ) {
@@ -540,20 +544,20 @@ impl Panel {
                     self.dimensions.0 as f64,
                     self.dimensions.1 as f64,
                     Some(path)
-                ).map_err(|e| format!("Error creating SVG surface: {}", e) )?;
+                ).map_err(|e| FileError(format!("Error creating SVG surface: {}", e) ))?;
                 let ctx = Context::new(&surf).unwrap();
-                self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
+                self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32)?;
             },
             Some("png") => {
                 let surf = ImageSurface::create(
                     Format::ARgb32,
                     self.dimensions.0 as i32,
                     self.dimensions.1 as i32,
-                ).map_err(|e| format!("Error creating PNG image surface: {}", e) )?;
+                ).map_err(|e| FileError(format!("Error creating PNG image surface: {}", e) ))?;
                 let ctx = Context::new(&surf).unwrap();
                 // ctx.scale(3.0, 3.0);
-                self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
-                let mut f = File::create(path).map_err(|e| format!("Unable to open PNG file:{}", e))?;
+                self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32)?;
+                let mut f = File::create(path).map_err(|e| FileError(format!("Unable to open PNG file:{}", e)))?;
                 surf.write_to_png(&mut f)
                     .map_err(|e| format!("Error writing content to png: {}", e) )?;
             },
@@ -562,16 +566,16 @@ impl Panel {
                     self.dimensions.0 as f64,
                     self.dimensions.1 as f64,
                     path
-                ).map_err(|e| format!("Error creating Postscript surface: {}", e) )?;
+                ).map_err(|e| FileError(format!("Error creating Postscript surface: {}", e) ))?;
                 surf.set_eps(true);
                 let ctx = Context::new(&surf).unwrap();
-                self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32);
+                self.draw_to_context(&ctx, 0, 0, self.dimensions.0 as i32, self.dimensions.1 as i32)?;
             },
             Some(other) => {
-                return Err(format!("Invalid image export extension: {}", other));
+                Err(FileError(format!("Invalid image export extension: {}", other)))?;
             },
             None => {
-                return Err(format!("No valid extension informed for image export file"));
+                Err(FileError(format!("No valid extension informed for image export file")))?;
             }
         };
         Ok(())
@@ -593,7 +597,7 @@ impl Panel {
         y : i32,
         w : i32,
         h : i32
-    ) {
+    ) -> Result<(), Box<dyn Error>> {
         let top_left = (0.05, 0.05);
         let top_right = (w as f64 * self.h_ratio, 0.05);
         let bottom_left = (0.05, h as f64 * self.v_ratio);
@@ -653,11 +657,12 @@ impl Panel {
             };
             let origin = (x as f64 + origin_offset.0, y as f64 + origin_offset.1);
             let size = ((w as f64 * scale_factor.0) as i32, (h as f64 * scale_factor.1) as i32);
-            ctx.save();
+            ctx.save()?;
             ctx.translate(origin.0, origin.1);
-            plot.draw_plot(&ctx, &self.design, size.0, size.1);
-            ctx.restore();
+            plot.draw_plot(&ctx, &self.design, size.0, size.1)?;
+            ctx.restore()?;
         }
+        Ok(())
     }
 
     pub fn update_mapping(&mut self, ix : usize, id : &str, data : &Vec<Vec<f64>>) -> Result<(), Box<dyn Error>> {
@@ -815,7 +820,7 @@ impl Plot {
         self.wrap().svg().unwrap()
     }
 
-    pub fn draw_to_file(&self, path : &str) -> Result<(), String> {
+    pub fn draw_to_file(&self, path : &str) -> Result<(), Box<dyn Error>> {
         self.wrap().draw_to_file(path)
     }
 
@@ -932,13 +937,14 @@ impl Plot {
         pl
     }
 
-    fn draw_plot(&mut self, ctx: &Context, design : &PlotDesign, w : i32, h : i32) {
+    fn draw_plot(&mut self, ctx: &Context, design : &PlotDesign, w : i32, h : i32) -> Result<(), Box<dyn Error>> {
         self.mapper.update_dimensions(w, h);
-        self.draw_background(ctx, design);
-        self.draw_grid(ctx, design);
+        self.draw_background(ctx, design)?;
+        self.draw_grid(ctx, design)?;
         for mapping in self.mappings.iter() {
-            mapping.draw(&self.mapper, &ctx);
+            mapping.draw(&self.mapper, &ctx)?;
         }
+        Ok(())
     }
 
     pub fn max_data_limits(&self) -> Option<((f64, f64), (f64, f64))> {
@@ -1209,8 +1215,8 @@ impl Plot {
         }
     }
 
-    fn draw_background(&self, ctx : &Context, design : &PlotDesign) {
-        ctx.save();
+    fn draw_background(&self, ctx : &Context, design : &PlotDesign) -> Result<(), Box<dyn Error>> {
+        ctx.save()?;
         ctx.set_line_width(0.0);
         ctx.set_source_rgb(
             design.bg_color.red.into(),
@@ -1220,8 +1226,9 @@ impl Plot {
         ctx.rectangle(
             0.1*(self.mapper.w as f64), 0.1*(self.mapper.h as f64),
             0.8*(self.mapper.w as f64), 0.8*(self.mapper.h as f64));
-        ctx.fill();
-        ctx.restore();
+        ctx.fill()?;
+        ctx.restore()?;
+        Ok(())
     }
 
     fn draw_grid_line(
@@ -1230,8 +1237,8 @@ impl Plot {
         design : &PlotDesign,
         from : Coord2D,
         to : Coord2D
-    ) {
-        ctx.save();
+    ) -> Result<(), Box<dyn Error>> {
+        ctx.save()?;
         ctx.set_source_rgb(
             design.grid_color.red.into(),
             design.grid_color.green.into(),
@@ -1239,14 +1246,15 @@ impl Plot {
         );
         ctx.move_to(from.x, from.y);
         ctx.line_to(to.x, to.y);
-        ctx.stroke();
+        ctx.stroke()?;
 
         //ctx.set_source_rgb(0.2666, 0.2666, 0.2666);
         //ctx.move_to(from.x + label_off_x, from.y + label_off_y);
         //ctx.show_text(&label);
         //self.draw_centered_label(ctx, &label, Coord2D::new(from.x + label_off_x, from.y + label_off_y), false);
         //self.draw_grid_value(ctx, &label)
-        ctx.restore();
+        ctx.restore()?;
+        Ok(())
     }
 
     /// Since the y value is always centered, this function accepts the option
@@ -1260,7 +1268,7 @@ impl Plot {
         center_x : bool,
         ext_off_x : f64,
         ext_off_y : f64
-    ) {
+    ) -> Result<(), Box<dyn Error>> {
         ctx.set_source_rgb(0.2666, 0.2666, 0.2666);
         text::draw_label(
             &design.font.sf,
@@ -1271,7 +1279,8 @@ impl Plot {
             (center_x, true),
             Some(ext_off_x),
             Some(ext_off_y)
-        );
+        )?;
+        Ok(())
     }
 
     pub fn steps_to_labels(
@@ -1301,8 +1310,8 @@ impl Plot {
             .collect()
     }*/
 
-    fn draw_grid(&self, ctx : &Context, design : &PlotDesign) {
-        ctx.save();
+    fn draw_grid(&self, ctx : &Context, design : &PlotDesign) -> Result<(), Box<dyn Error>> {
+        ctx.save()?;
         ctx.set_line_width(design.grid_width as f64);
         design.font.set_font_into_context(&ctx);
         let mut x_labels = Plot::steps_to_labels(
@@ -1328,8 +1337,8 @@ impl Plot {
             // let from = self.mapper.map(*x, self.mapper.ymin);
             // let to = match self.mapper.self.mapper.map(*x, self.mapper.ymax);
             // println!("{:?}, {:?}, {:?}", x, from, to);
-            self.draw_grid_line(ctx, design, from, to);
-            self.draw_grid_value(ctx, design, x_label, from, true, 0.0, 1.5);
+            self.draw_grid_line(ctx, design, from, to)?;
+            self.draw_grid_value(ctx, design, x_label, from, true, 0.0, 1.5)?;
         }
 
         let mut y_labels = Plot::steps_to_labels(
@@ -1353,19 +1362,20 @@ impl Plot {
                 (true, false) =>  self.mapper.map(self.mapper.xmin, *y),
                 (true, true) => self.mapper.map(self.mapper.xmin, self.mapper.ymin + self.mapper.ymax - *y)
             };
-            self.draw_grid_line(ctx, design, from, to);
+            self.draw_grid_line(ctx, design, from, to)?;
             //let mut y_label_coord = match self.mapper.yinv {
             //    true => to,
             //    false => from
             //};
             from.x -= 1.1*max_extent;
-            self.draw_grid_value(ctx, design, y_label, from, false, 0.0, 0.0);
+            self.draw_grid_value(ctx, design, y_label, from, false, 0.0, 0.0)?;
         }
-        self.draw_scale_names(ctx, design);
-        ctx.restore();
+        self.draw_scale_names(ctx, design)?;
+        ctx.restore()?;
+        Ok(())
     }
 
-    fn draw_scale_names(&self, ctx : &Context, design : &PlotDesign) {
+    fn draw_scale_names(&self, ctx : &Context, design : &PlotDesign) -> Result<(), Box<dyn Error>> {
         let pos_x = Coord2D::new(
             self.mapper.w as f64 * 0.5,
             self.mapper.h as f64 * 0.975
@@ -1384,7 +1394,7 @@ impl Plot {
             (true, true),
             None,
             None
-        );
+        )?;
         text::draw_label(
             &design.font.sf,
             ctx,
@@ -1394,7 +1404,8 @@ impl Plot {
             (true, true),
             None,
             None
-        );
+        )?;
+        Ok(())
     }
 
     /*fn update_mapping_name(name : &str) {

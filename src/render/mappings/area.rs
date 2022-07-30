@@ -138,8 +138,8 @@ impl Mapping for AreaMapping {
     }
 
     // Mapping-specific impl.
-    fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
-        ctx.save();
+    fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
+        ctx.save()?;
         ctx.set_source_rgba(
             self.color.red.into(),
             self.color.green.into(),
@@ -148,8 +148,8 @@ impl Mapping for AreaMapping {
         );
         ctx.set_fill_rule(cairo::FillRule::Winding);
         if self.x.len() == 0 {
-            ctx.restore();
-            return;
+            ctx.restore()?;
+            return Ok(());
         }
         let pt0 = mapper.map(self.x[0], self.ymin[0]);
         ctx.move_to(pt0.x, pt0.y);
@@ -164,7 +164,10 @@ impl Mapping for AreaMapping {
                 //ctx.move_to(from.x, from.y);
                 ctx.line_to(to.x, to.y);
             },
-            _ => { ctx.restore(); return; }
+            _ => {
+                ctx.restore()?;
+                return Ok(());
+            }
         }
         let zip_xy0_rev = self.x.iter().rev().zip(self.ymax.iter().rev());
         let zip_xy1_rev = self.x.iter().rev().skip(1).zip(self.ymax.iter().rev().skip(1));
@@ -174,8 +177,9 @@ impl Mapping for AreaMapping {
         ctx.line_to(pt.x, pt.y);
         ctx.close_path();
         //ctx.fill_preserve();
-        ctx.fill();
-        ctx.restore();
+        ctx.fill()?;
+        ctx.restore()?;
+        Ok(())
     }
 
     // Mapping-specific impl.

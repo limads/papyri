@@ -111,8 +111,8 @@ impl Mapping for ScatterMapping {
         super::update_data_pair_from_json(&mut self.x, &mut self.y, rep);
     }
 
-    fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
-        ctx.save();
+    fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
+        ctx.save()?;
         ctx.set_source_rgba(
             self.color.red.into(),
             self.color.green.into(),
@@ -123,13 +123,14 @@ impl Mapping for ScatterMapping {
             if mapper.check_bounds(*x, *y) {
                 let pos = mapper.map(*x, *y);
                 ctx.arc(pos.x, pos.y, self.radius, 0.0, 2.0*PI);
-                ctx.fill();
-                ctx.stroke();
+                ctx.fill()?;
+                ctx.stroke()?;
             } else {
                 println!("Out of bounds mapping");
             }
         }
-        ctx.restore();
+        ctx.restore()?;
+        Ok(())
     }
 
     //fn new(&self, HashMap<String, String> properties);

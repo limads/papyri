@@ -183,7 +183,7 @@ impl Mapping for SurfaceMapping {
 
     /// The z column maps a ratio between zmin and zmax
     /// into a color ratio between color and color max
-    fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
+    fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
 
         if self.x.len() == 0 {
             return;
@@ -257,6 +257,7 @@ impl Mapping for SurfaceMapping {
         //ctx.set_source(&*mesh);
         ctx.paint();
         ctx.restore();
+        Ok(())
     }
 
     /// GSL requires z to be organized as a row-wise matrix, so we

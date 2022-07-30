@@ -219,8 +219,8 @@ impl Mapping for BarMapping {
         self.update_data(vec![new_data]);
     }
 
-    fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
-        ctx.save();
+    fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
+        ctx.save()?;
         ctx.set_source_rgb(self.color.red.into(), self.color.green.into(), self.color.blue.into());
         //println!("Received for drawing {:?} {:?} {:?} {:?}", self.x, self.y, self.w, self.h);
         let r_iter = self.x.iter().zip(self.y.iter()
@@ -244,13 +244,14 @@ impl Mapping for BarMapping {
                 let coord_w = bottom_left.distance(bottom_right);
                 let coord_h = bottom_left.distance(top_left);
                 ctx.rectangle(top_left.x, top_left.y, coord_w, coord_h);
-                ctx.fill();
-                ctx.stroke();
+                ctx.fill()?;
+                ctx.stroke()?;
             } else {
                 // println!("Out of bounds mapping");
             }
         }
-        ctx.restore();
+        ctx.restore()?;
+        Ok(())
     }
 
     fn update_data(&mut self, mut values : Vec<Vec<f64>>) {

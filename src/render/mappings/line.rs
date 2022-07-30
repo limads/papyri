@@ -120,12 +120,12 @@ impl Mapping for LineMapping {
         Box::new(self.clone())
     }
 
-    fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
+    fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
         //println!("{:?}", self);
         if self.x.len() < 2 || self.y.len() < 2 {
-            return;
+            return Ok(());
         }
-        ctx.save();
+        ctx.save()?;
         ctx.set_source_rgb(
             self.color.red.into(),
             self.color.green.into(),
@@ -159,8 +159,9 @@ impl Mapping for LineMapping {
             // prev_x = curr_x;
             // prev_y = curr_y;
         }
-        ctx.stroke();
-        ctx.restore();
+        ctx.stroke()?;
+        ctx.restore()?;
+        Ok(())
     }
 
     fn update_data(&mut self, values : Vec<Vec<f64>>) {

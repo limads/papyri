@@ -5,6 +5,12 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::str::FromStr;
 
+/* It is perfectly possible that the structures model::Plot, model::Panel and model::Mapping at
+this module hold invalid states. Cairo never sees those structures directly. The actual validation
+is done when the render::Plot, render:Panel and the concrete mappings are built from the loosely-typed
+structures here. Those structures only represent a valid de-serialization step from a plot definition
+handed by the user. */
+
 /// Carries the logic of how scale adjustment to the mapping should be done.
 /// Tight means the two scales will extend just enough to show the data.
 /// Round means the scales will extend to show the data, and a little

@@ -133,7 +133,7 @@ where
 {
 
     // Mapping-specific impl.
-    fn draw(&self, mapper : &ContextMapper, ctx : &Context);// { }
+    fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> ;// { }
 
     // We cannot simply require Self : Clone because this
     // assumes Self : Sized, which makes it impossible to use

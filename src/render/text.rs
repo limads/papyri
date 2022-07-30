@@ -1,10 +1,10 @@
 use cairo::Context;
-use cairo::*;
-use cairo::ScaledFont;
+use cairo::{ScaledFont, FontWeight, FontSlant};
 use super::context_mapper::*;
 use std::f64::consts::PI;
 use regex::Regex;
 use std::default::Default;
+use std::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct FontData {
@@ -129,12 +129,12 @@ fn create_scaled_font(
     weight : FontWeight,
     size : i32
 ) -> ScaledFont {
-    let mut font_m =  Matrix::identity();
-    let ctm = Matrix::identity();
+    let mut font_m =  cairo::Matrix::identity();
+    let ctm = cairo::Matrix::identity();
     font_m.scale(size as f64, size as f64);
-    let opts = FontOptions::new().unwrap();
+    let opts = cairo::FontOptions::new().unwrap();
     // context.get_font_face()
-    let font_face = FontFace::toy_create(
+    let font_face = cairo::FontFace::toy_create(
         family,
         slant,
         weight
@@ -156,8 +156,8 @@ pub fn draw_label(
     center : (bool, bool),
     off_x : Option<f64>,
     off_y : Option<f64>
-) {
-    ctx.save();
+) -> Result<(), Box<dyn Error>> {
+    ctx.save()?;
     let ext = sf.text_extents(label);
     let xadv = ext.x_advance;
     let height = ext.height;
@@ -184,6 +184,9 @@ pub fn draw_label(
         ctx.translate(-radius + 2. * height, radius);
         ctx.rotate(-PI/2.0);
     }
-    ctx.show_glyphs(&glyphs[..]);
-    ctx.restore();
+    if let Err(e) = ctx.show_glyphs(&glyphs[..]) {
+        println!("{}", e);
+    }
+    ctx.restore()?;
+    Ok(())
 }

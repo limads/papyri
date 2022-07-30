@@ -143,12 +143,12 @@ impl Mapping for IntervalMapping {
         Box::new(self.clone())
     }
 
-    fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
+    fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
         //println!("{:?}", self);
         if self.x.len() < 1 || self.ymin.len() < 1 || self.ymax.len() < 1 {
-            return;
+            return Ok(());
         }
-        ctx.save();
+        ctx.save()?;
         ctx.set_source_rgb(
             self.color.red.into(),
             self.color.green.into(),
@@ -168,19 +168,19 @@ impl Mapping for IntervalMapping {
                     let to_low = mapper.map(*curr_x + self.lim_sz / 2., *curr_ymin);
                     ctx.move_to(from_low.x, from_low.y);
                     ctx.line_to(to_low.x, to_low.y);
-                    ctx.stroke();
+                    ctx.stroke()?;
 
                     let from_high = mapper.map(*curr_x - self.lim_sz / 2., *curr_ymax);
                     let to_high = mapper.map(*curr_x + self.lim_sz / 2., *curr_ymax);
                     ctx.move_to(from_high.x, from_high.y);
                     ctx.line_to(to_high.x, to_high.y);
-                    ctx.stroke();
+                    ctx.stroke()?;
 
                     let from_bar = mapper.map(*curr_x, *curr_ymin);
                     let to_bar = mapper.map(*curr_x, *curr_ymax);
                     ctx.move_to(from_bar.x, from_bar.y);
                     ctx.line_to(to_bar.x, to_bar.y);
-                    ctx.stroke();
+                    ctx.stroke()?;
                 }
             } else {
                 if mapper.check_bounds(*curr_ymin, *curr_x) && mapper.check_bounds(*curr_ymax, *curr_x) {
@@ -188,23 +188,24 @@ impl Mapping for IntervalMapping {
                     let to_low = mapper.map(*curr_ymin, *curr_x + self.lim_sz / 2.);
                     ctx.move_to(from_low.x, from_low.y);
                     ctx.line_to(to_low.x, to_low.y);
-                    ctx.stroke();
+                    ctx.stroke()?;
 
                     let from_high = mapper.map(*curr_ymax, *curr_x - self.lim_sz / 2.);
                     let to_high = mapper.map(*curr_ymax, *curr_x + self.lim_sz / 2.);
                     ctx.move_to(from_high.x, from_high.y);
                     ctx.line_to(to_high.x, to_high.y);
-                    ctx.stroke();
+                    ctx.stroke()?;
 
                     let from_bar = mapper.map(*curr_ymin, *curr_x);
                     let to_bar = mapper.map(*curr_ymax, *curr_x);
                     ctx.move_to(from_bar.x, from_bar.y);
                     ctx.line_to(to_bar.x, to_bar.y);
-                    ctx.stroke();
+                    ctx.stroke()?;
                 }
             }
         }
-        ctx.restore();
+        ctx.restore()?;
+        Ok(())
     }
 
     fn update_data(&mut self, values : Vec<Vec<f64>>) {

@@ -132,8 +132,8 @@ impl Mapping for TextMapping {
         super::update_textual_data_from_json(&mut self.x, &mut self.y, &mut self.text, rep);
     }
 
-    fn draw(&self, mapper : &ContextMapper, ctx : &Context) {
-        ctx.save();
+    fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
+        ctx.save()?;
         if !((self.x.len() == self.y.len()) && (self.x.len() == self.text.len())) {
             // println!("Invalid dimensions at textual mapping");
             // println!("x: {}; y: {}; t: {}", self.x.len(), self.y.len(), self.text.len());
@@ -156,12 +156,13 @@ impl Mapping for TextMapping {
                     (true, true),
                     None,
                     None
-                );
+                )?;
             } else {
                 // println!("Out of bounds mapping");
             }
         }
-        ctx.restore();
+        ctx.restore()?;
+        Ok(())
     }
 
     fn update_data(&mut self, values : Vec<Vec<f64>>) {
