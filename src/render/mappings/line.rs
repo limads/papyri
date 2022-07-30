@@ -6,7 +6,7 @@ use super::*;
 use std::cmp::*;
 use std::default::Default;
 use super::super::{MappingProperty, LineProperty};
-use std::str::FromStr;
+
 use std::borrow::Borrow;
 use crate::model::MappingType;
 
@@ -135,7 +135,7 @@ impl Mapping for LineMapping {
         let dashes = LineMapping::build_dash(self.dash_n);
         ctx.set_dash(&dashes[..], 0.0);
         //println!("Received for drawing {:?} {:?}", self.x, self.y);
-        let mut zip_xy = self.x[1..].iter().zip(self.y[1..].iter());
+        let zip_xy = self.x[1..].iter().zip(self.y[1..].iter());
         /*let (mut prev_x, mut prev_y) = match zip_xy.next() {
             Some((prev_x, prev_y)) => (prev_x, prev_y),
             None => {
@@ -168,7 +168,7 @@ impl Mapping for LineMapping {
         self.y = values[1].clone();
     }
 
-    fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
+    fn update_from_json(&mut self, rep : crate::model::Mapping) {
         if let Some(width) = rep.width {
             self.width = width;
         }

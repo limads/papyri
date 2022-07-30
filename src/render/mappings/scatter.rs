@@ -97,7 +97,7 @@ impl Mapping for ScatterMapping {
         Box::new(self.clone())
     }
 
-    fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
+    fn update_from_json(&mut self, rep : crate::model::Mapping) {
         // TODO check properties of other mappings are None.
         if let Some(color) = rep.color.clone() {
             self.color = RGBA::from_str(&color).unwrap();

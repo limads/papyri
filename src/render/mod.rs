@@ -342,7 +342,7 @@ impl Panel {
         Default::default()
     }
 
-    pub fn new_from_single(mut plot : crate::model::Plot) -> Result<Self, String> {
+    pub fn new_from_single(plot : crate::model::Plot) -> Result<Self, String> {
         let design_json = plot.design.clone().unwrap_or_default();
         let layout_json = plot.layout.clone().unwrap_or_default();
         let design = PlotDesign::new_from_json(design_json)
@@ -440,10 +440,10 @@ impl Panel {
             Ok(panel_def) => {
                 Self::new_from_model(panel_def)
             },
-            Err(e) => {
+            Err(_e) => {
                 // println!("Error parsing panel = {}", e);
                 // println!("{}", json);
-                let mut plot : crate::model::Plot = serde_json::from_str(json)
+                let plot : crate::model::Plot = serde_json::from_str(json)
                     .map_err(|e| format!("Error parsing plot = {}", e) )?;
                 Self::new_from_single(plot)
             }
@@ -479,7 +479,7 @@ impl Panel {
     }
 
     pub fn svg(&mut self) -> Result<String, Box<dyn Error>> {
-        let mut svg_buf : Vec<u8> = Vec::new();
+        let svg_buf : Vec<u8> = Vec::new();
         let surf = SvgSurface::for_stream(
             self.dimensions.0 as f64,
             self.dimensions.1 as f64,
@@ -600,7 +600,7 @@ impl Panel {
         let bottom_right = (w as f64 * self.h_ratio, h as f64 * self.v_ratio);
 
         // The plot context mapper is re-set here, so plot must be mutably-borrowed
-        for (i, mut plot) in self.plots.iter_mut().enumerate() {
+        for (i, plot) in self.plots.iter_mut().enumerate() {
             let origin_offset = match (&self.split, i) {
                 (GroupSplit::Horizontal, 1) => top_right,
                 (GroupSplit::Vertical, 1) => bottom_left,
@@ -976,7 +976,7 @@ impl Plot {
         data : &[f64],
         old_min : f64,
         old_max : f64,
-        dim_name : &str
+        _dim_name : &str
     ) {
         let new_min = data.iter().fold(old_min, |min, el| {
             if *el < min {

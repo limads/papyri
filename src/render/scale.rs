@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use super::ScaleProperty;
 use super::context_mapper;
-use std::str::FromStr;
+
 use crate::model::{Adjustment, ScaleError};
 
 #[derive(Debug, Clone)]

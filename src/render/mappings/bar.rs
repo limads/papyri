@@ -5,7 +5,7 @@ use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
 // use super::utils;
 use super::*;
-use std::mem;
+
 use super::super::MappingProperty;
 use std::borrow::Borrow;
 use crate::model::MappingType;
@@ -176,14 +176,14 @@ impl Mapping for BarMapping {
 
     fn update(&mut self, prop : MappingProperty) -> bool {
         match prop {
-            MappingProperty::Line(line) => {
+            MappingProperty::Line(_line) => {
                 unimplemented!()
             },
             _ => false
         }
     }
 
-    fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
+    fn update_from_json(&mut self, rep : crate::model::Mapping) {
         // TODO check properties of other mappings are None.
 
         if let Some(w) = rep.bar_width {

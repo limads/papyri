@@ -89,7 +89,7 @@ impl AreaMapping {
             let bounds_ok = mapper.check_bounds(*x0, *y0) &&
                 mapper.check_bounds(*x1, *y1);
             if bounds_ok {
-                let from = mapper.map(*x0, *y0);
+                let _from = mapper.map(*x0, *y0);
                 let to   = mapper.map(*x1, *y1);
                 // println!("{:?}", (from, to));
                 // ctx.move_to(from.x, from.y);
@@ -113,7 +113,7 @@ impl Mapping for AreaMapping {
 
     fn update(&mut self, prop : MappingProperty) -> bool {
         match prop {
-            MappingProperty::Line(line) => {
+            MappingProperty::Line(_line) => {
 
                 true
             },
@@ -128,7 +128,7 @@ impl Mapping for AreaMapping {
         Box::new(self.clone())
     }
 
-    fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
+    fn update_from_json(&mut self, _rep : crate::model::Mapping) {
         // if let Some(ymin) = rep.ymin {
         // }
         // if let Some(ymax) = rep.ymax  {

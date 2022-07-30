@@ -10,7 +10,7 @@ use std::default::Default;
 use std::mem;
 use std::error::Error;
 use std::fmt::Debug;
-use base64;
+
 use crate::render::PlotError;
 use crate::model::MappingType;
 
@@ -81,7 +81,7 @@ fn update_textual_data_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, z : &mut 
     }
 }
 
-pub fn new_from_json(mut rep : crate::model::Mapping) -> Result<Box<dyn Mapping>, Box<dyn Error>> {
+pub fn new_from_json(rep : crate::model::Mapping) -> Result<Box<dyn Mapping>, Box<dyn Error>> {
     // Must be line|scatter|area|bar|surface|text
     let mut mapping : Box<dyn Mapping> = match &rep.kind[..] {
         "line" => {

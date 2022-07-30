@@ -6,7 +6,7 @@ use super::*;
 use std::cmp::*;
 use std::default::Default;
 use super::super::{MappingProperty, IntervalProperty};
-use std::str::FromStr;
+
 use std::borrow::Borrow;
 use crate::model::MappingType;
 
@@ -158,7 +158,7 @@ impl Mapping for IntervalMapping {
         let dashes = IntervalMapping::build_dash(self.dash_n);
         ctx.set_dash(&dashes[..], 0.0);
 
-        let mut zip_xy = self.x.iter().zip(self.ymin.iter().zip(self.ymax.iter()));
+        let zip_xy = self.x.iter().zip(self.ymin.iter().zip(self.ymax.iter()));
 
         for (curr_x, (curr_ymin, curr_ymax)) in zip_xy {
             assert!(*curr_ymin <= *curr_ymax);
@@ -213,7 +213,7 @@ impl Mapping for IntervalMapping {
         self.ymax = values[2].clone();
     }
 
-    fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
+    fn update_from_json(&mut self, rep : crate::model::Mapping) {
         if let Some(width) = rep.width {
             self.width = width;
         }
@@ -322,7 +322,7 @@ impl Mapping for IntervalMapping {
         unimplemented!()
     }
 
-    fn set_col_name(&mut self, col : &str, name : &str) {
+    fn set_col_name(&mut self, _col : &str, _name : &str) {
         /*match col {
             "x" => { self.col_names[0] = name.into(); },
             "y" => { self.col_names[1] = name.into(); },
@@ -331,7 +331,7 @@ impl Mapping for IntervalMapping {
         unimplemented!()
     }
 
-    fn set_col_names(&mut self, cols : Vec<String>) -> Result<(), &'static str> {
+    fn set_col_names(&mut self, _cols : Vec<String>) -> Result<(), &'static str> {
         /*if cols.len() != 2 {
             Err("Wrong number of columns.")
         } else {

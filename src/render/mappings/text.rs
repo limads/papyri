@@ -119,7 +119,7 @@ impl Mapping for TextMapping {
         }
     }
 
-    fn update_from_json(&mut self, mut rep : crate::model::Mapping) {
+    fn update_from_json(&mut self, rep : crate::model::Mapping) {
         if let Some(font) = &rep.font {
             self.font = FontData::new_from_string(&font);
         }
