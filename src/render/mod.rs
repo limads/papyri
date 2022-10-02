@@ -1219,9 +1219,9 @@ impl Plot {
         ctx.save()?;
         ctx.set_line_width(0.0);
         ctx.set_source_rgb(
-            design.bg_color.red.into(),
-            design.bg_color.green.into(),
-            design.bg_color.blue.into()
+            design.bg_color.red().into(),
+            design.bg_color.green().into(),
+            design.bg_color.blue().into()
         );
         ctx.rectangle(
             0.1*(self.mapper.w as f64), 0.1*(self.mapper.h as f64),
@@ -1240,9 +1240,9 @@ impl Plot {
     ) -> Result<(), Box<dyn Error>> {
         ctx.save()?;
         ctx.set_source_rgb(
-            design.grid_color.red.into(),
-            design.grid_color.green.into(),
-            design.grid_color.blue.into()
+            design.grid_color.red().into(),
+            design.grid_color.green().into(),
+            design.grid_color.blue().into()
         );
         ctx.move_to(from.x, from.y);
         ctx.line_to(to.x, to.y);

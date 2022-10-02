@@ -25,7 +25,7 @@ impl Default for LineMapping {
 
     fn default() -> Self {
         Self {
-            color : RGBA::black(),
+            color : RGBA::BLACK,
             x : Vec::new(),
             y : Vec::new(),
             width : 1.0,
@@ -127,9 +127,9 @@ impl Mapping for LineMapping {
         }
         ctx.save()?;
         ctx.set_source_rgb(
-            self.color.red.into(),
-            self.color.green.into(),
-            self.color.blue.into()
+            self.color.red().into(),
+            self.color.green().into(),
+            self.color.blue().into()
         );
         ctx.set_line_width(self.width);
         let dashes = LineMapping::build_dash(self.dash_n);

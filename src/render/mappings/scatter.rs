@@ -26,7 +26,7 @@ impl Default for ScatterMapping {
 
     fn default() -> Self {
         Self {
-            color : RGBA::black(),
+            color : RGBA::BLACK,
             x : Vec::new(),
             y : Vec::new(),
             radius : 5.0,
@@ -114,10 +114,10 @@ impl Mapping for ScatterMapping {
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
         ctx.save()?;
         ctx.set_source_rgba(
-            self.color.red.into(),
-            self.color.green.into(),
-            self.color.blue.into(),
-            self.color.alpha.into()
+            self.color.red().into(),
+            self.color.green().into(),
+            self.color.blue().into(),
+            self.color.alpha().into()
         );
         for (x, y) in self.x.iter().zip(self.y.iter()) {
             if mapper.check_bounds(*x, *y) {

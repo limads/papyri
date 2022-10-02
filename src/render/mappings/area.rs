@@ -29,7 +29,7 @@ impl Default for AreaMapping {
 
     fn default() -> Self {
         Self {
-            color : RGBA::black(),
+            color : RGBA::BLACK,
             x : Vec::new(),
             ymin : Vec::new(),
             ymax : Vec::new(),
@@ -141,10 +141,10 @@ impl Mapping for AreaMapping {
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
         ctx.save()?;
         ctx.set_source_rgba(
-            self.color.red.into(),
-            self.color.green.into(),
-            self.color.blue.into(),
-            self.color.alpha.into()
+            self.color.red().into(),
+            self.color.green().into(),
+            self.color.blue().into(),
+            self.color.alpha().into()
         );
         ctx.set_fill_rule(cairo::FillRule::Winding);
         if self.x.len() == 0 {
@@ -220,7 +220,7 @@ impl Mapping for AreaMapping {
             *e = self.color.to_string();
         }
         if let Some(e) = properties.get_mut("opacity") {
-            *e = self.color.alpha.to_string();
+            *e = self.color.alpha().to_string();
         }
         if let Some(e) = properties.get_mut("x") {
             *e = self.col_names[0].clone();

@@ -5,6 +5,49 @@ use std::collections::HashMap;
 use std::ops::Range;
 use std::str::FromStr;
 
+/*
+// Drawing primitives shared by multiple mappings.
+pub mod primitives {
+
+}
+
+// Conventional visualizations that can be built from one or more sets of mappings,
+possibly requiring predictable data manipulations.
+pub mod recipes {
+
+    histogram
+    boxplot
+    violin
+    density
+    qqplot
+    matrix(pl, a, b) Cartesian product of factors a, b for arbitrary plots pl.
+    tree (dendrogram-like visualizations)
+    
+}
+
+Color or shape mapping labels.
+pub mod labels {
+
+}
+
+*/
+
+/*
+The minimal JSON satisfying the plot spec is:
+{
+    "x" : {},
+    "y" : {},
+    "mappings" : {}
+}
+
+The minimal JSON satisfying the panel spec is:
+{
+    "design" : {},
+    "layout" : {},
+    "plots" : {}
+}
+*/
+
 /* It is perfectly possible that the structures model::Plot, model::Panel and model::Mapping at
 this module hold invalid states. Cairo never sees those structures directly. The actual validation
 is done when the render::Plot, render:Panel and the concrete mappings are built from the loosely-typed

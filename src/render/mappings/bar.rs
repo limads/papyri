@@ -17,10 +17,18 @@ use crate::model::MappingType;
 pub struct BarMapping {
     color : RGBA,
     center_anchor : bool,
+
+    // x and y hold the coordinates of the bar base, increasing at a fixed
+    // spacing in the data space from the origin.
     x : Vec<f64>,
     y : Vec<f64>,
+
+    // height and width hold the coordinates of the bar width and height in
+    // data space. If horizontal is true, w varies with the data and h is fixed;
+    // if horizontal is false, h varies wit the data and w is fixed.
     h : Vec<f64>,
     w : Vec<f64>,
+
     col_names : [String; 4],
 
     // TODO rename to bar thickness, since the graph mihgt be horizontal. This is at the scale of 1-100
@@ -42,7 +50,7 @@ impl Default for BarMapping {
 
     fn default() -> Self {
         let mut bar = Self {
-            color : RGBA::black(),
+            color : RGBA::BLACK,
             x : Vec::new(),
             y : Vec::new(),
             h : Vec::new(),
@@ -142,23 +150,43 @@ impl BarMapping {
     }*/
 
     fn adjust_bar(&mut self) {
+
+        /* At this point, either the w or h vectors have been set from the single
+        mapping x, depending on whether horizontal is set to true, and the remaining
+        data points (x, y, h||w) need to be updated. */
+
         if self.horizontal {
             let n = self.w.len();
+
+            // y (bar base) increasing from origin
             self.y = (0..n).map(|i| self.origin.1 + self.bar_spacing * i as f64 ).collect();
+
+            // x (bar base) fixed at origin
             self.x = (0..n).map(|_| self.origin.0 ).collect();
+
+            // Decrease half spacing from y coordinate.
             if self.center_anchor {
                 let spacing = self.bar_spacing;
                 self.y.iter_mut().for_each(|y| *y -= spacing / 2. );
             }
+
         } else {
             let n = self.h.len();
+
+            // y (bar base) fixed at origin
             self.y = (0..n).map(|_| self.origin.1 ).collect();
+
+            // x (bar base) increasing from origin
             self.x = (0..n).map(|i| self.origin.0  + self.bar_spacing * i as f64 ).collect();
+
+            // Decrease half spacing from x coordinate.
             if self.center_anchor {
                 let spacing = self.bar_spacing;
                 self.x.iter_mut().for_each(|x| *x -= spacing / 2. );
             }
         }
+
+        // Update the other dimension, which should remain fixed.
         if self.horizontal {
             self.h = (0..self.w.len()).map(|_| self.bar_spacing * self.bar_width / 100. ).collect();
         } else {
@@ -221,7 +249,7 @@ impl Mapping for BarMapping {
 
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
         ctx.save()?;
-        ctx.set_source_rgb(self.color.red.into(), self.color.green.into(), self.color.blue.into());
+        ctx.set_source_rgb(self.color.red().into(), self.color.green().into(), self.color.blue().into());
         //println!("Received for drawing {:?} {:?} {:?} {:?}", self.x, self.y, self.w, self.h);
         let r_iter = self.x.iter().zip(self.y.iter()
             .zip(self.w.iter()
@@ -240,7 +268,6 @@ impl Mapping for BarMapping {
                 let bottom_left = mapper.map(*x, *y);
                 let bottom_right = mapper.map(x + *w, *y);
                 let top_left = mapper.map(*x, *y + *h);
-                //let top_right = mapper.map(x_off + *w, *y + *h);
                 let coord_w = bottom_left.distance(bottom_right);
                 let coord_h = bottom_left.distance(top_left);
                 ctx.rectangle(top_left.x, top_left.y, coord_w, coord_h);
@@ -329,11 +356,29 @@ impl Mapping for BarMapping {
     }*/
 
     fn data_limits(&self) -> Option<((f64, f64), (f64, f64))> {
-        let xmin = self.x.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal) )?;
-        let xmax = self.x.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
-        let ymin = self.y.iter().min_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
-        let ymax = self.y.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
-        Some(((*xmin, *xmax), (*ymin, *ymax)))
+        let mut xmin = self.origin.0;
+        let mut ymin = self.origin.1;
+        if self.center_anchor && self.horizontal {
+            ymin -= self.bar_spacing / 2.0
+        }
+        if self.center_anchor && !self.horizontal {
+            xmin -= self.bar_spacing / 2.0
+        }
+        let xmax = if self.horizontal {
+            let max_w = self.w.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
+            xmin + *max_w
+        } else {
+            let n = self.x.len();
+            xmin + n as f64 * self.bar_spacing
+        };
+        let ymax = if self.horizontal {
+            let n = self.y.len();
+            ymin + n as f64 * self.bar_spacing
+        } else {
+            let max_h = self.h.iter().max_by(|a, b| a.partial_cmp(b).unwrap_or(Ordering::Equal))?;
+            ymin + *max_h
+        };
+        Some(((xmin, xmax), (ymin, ymax)))
     }
 
     fn properties(&self) -> HashMap<String, String> {
@@ -441,4 +486,3 @@ impl Mapping for BarMapping {
     }
 
 }
-

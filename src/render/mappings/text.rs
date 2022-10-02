@@ -29,7 +29,7 @@ impl Default for TextMapping {
 
     fn default() -> Self {
         Self {
-            color : RGBA::black(),
+            color : RGBA::BLACK,
             x : Vec::new(),
             y : Vec::new(),
             text : Vec::new(),
@@ -139,9 +139,9 @@ impl Mapping for TextMapping {
             // println!("x: {}; y: {}; t: {}", self.x.len(), self.y.len(), self.text.len());
         }
         ctx.set_source_rgb(
-            self.color.red.into(),
-            self.color.green.into(),
-            self.color.blue.into()
+            self.color.red().into(),
+            self.color.green().into(),
+            self.color.blue().into()
         );
         self.font.set_font_into_context(&ctx);
         for ((x, y), t) in self.x.iter().zip(self.y.iter()).zip(self.text.iter()) {

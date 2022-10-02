@@ -28,7 +28,7 @@ impl Default for IntervalMapping {
 
     fn default() -> Self {
         Self {
-            color : RGBA::black(),
+            color : RGBA::BLACK,
             x : Vec::new(),
             ymin : Vec::new(),
             ymax : Vec::new(),
@@ -150,9 +150,9 @@ impl Mapping for IntervalMapping {
         }
         ctx.save()?;
         ctx.set_source_rgb(
-            self.color.red.into(),
-            self.color.green.into(),
-            self.color.blue.into()
+            self.color.red().into(),
+            self.color.green().into(),
+            self.color.blue().into()
         );
         ctx.set_line_width(self.width);
         let dashes = IntervalMapping::build_dash(self.dash_n);

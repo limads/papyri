@@ -27,7 +27,7 @@ impl Default for SurfaceMapping {
 
     fn default() -> Self {
         Self {
-            color : RGBA::black(),
+            color : RGBA::BLACK,
             color_final : RGBA::white(),
             x : Vec::new(),
             y : Vec::new(),
@@ -191,10 +191,10 @@ impl Mapping for SurfaceMapping {
 
         ctx.save();
         ctx.set_source_rgba(
-            self.color.red.into(),
-            self.color.green.into(),
-            self.color.blue.into(),
-            self.color.alpha.into()
+            self.color.red().into(),
+            self.color.green().into(),
+            self.color.blue().into(),
+            self.color.alpha().into()
         );
         // (1) Create uniform mesh of given resolution
         let density = 5;
