@@ -1,3 +1,8 @@
+/*Copyright (c) 2022 Diego da Silva Lima. All rights reserved.
+
+This work is licensed under the terms of the MIT license.  
+For a copy, see <https://opensource.org/licenses/MIT>.*/
+
 use std::collections::HashMap;
 use super::ScaleProperty;
 use super::context_mapper;
@@ -139,7 +144,7 @@ impl Scale {
         } else {
             Adjustment::Tight
         };
-        let scale = Self::new_full(rep.label, rep.precision, rep.from, rep.to, rep.n_intervals, rep.log, rep.invert, rep.offset, adj);
+        let scale = Self::new_full(rep.label, rep.precision, rep.from, rep.to, rep.intervals, rep.log, rep.invert, rep.offset, adj);
         if scale.n_intervals as usize + 1 != scale.steps.len() {
             Err(ScaleError::StepNumber)?;
         }
@@ -206,8 +211,8 @@ pub fn adjust_segment(seg : &mut Scale, adj : Adjustment, data_min : f64, data_m
 
 fn define_steps(n_intervals : i32, from : f64, to : f64, offset : i32, log : bool) -> Vec<f64> {
     let off_prop = match log {
-        true => (10. as f64).powf(((to.log10() - from.log10()) / n_intervals as f64)*(offset as f64 / 100.)),
-        false => ((to - from) / n_intervals as f64)*(offset as f64 / 100.0)
+        true => (10. as f64).powf(((to.log10() - from.log10()) / n_intervals as f64)*(offset as f64 )),
+        false => ((to - from) / n_intervals as f64)*(offset as f64 )
     };
     let from_offset = match log {
         true => from*off_prop,

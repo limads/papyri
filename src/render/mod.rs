@@ -1,3 +1,8 @@
+/*Copyright (c) 2022 Diego da Silva Lima. All rights reserved.
+
+This work is licensed under the terms of the MIT license.  
+For a copy, see <https://opensource.org/licenses/MIT>.*/
+
 use cairo::Context;
 use std::default::Default;
 use std::collections::HashMap;
@@ -357,8 +362,8 @@ impl Panel {
             design,
             plots : vec![area],
             split : GroupSplit::Unique,
-            h_ratio : layout_json.horizontal_ratio,
-            v_ratio : layout_json.vertical_ratio,
+            h_ratio : layout_json.hratio,
+            v_ratio : layout_json.vratio,
             dimensions : (layout_json.width as usize, layout_json.height as usize),
         })
     }
@@ -367,16 +372,16 @@ impl Panel {
         let mut panel : Panel = Default::default();
         panel.plots.clear();
 
-        if panel_def.elements.len() == 1 {
+        if panel_def.plots.len() == 1 {
             panel.split = GroupSplit::Unique;
         } else {
-            if panel_def.elements.len() == 2 {
+            if panel_def.plots.len() == 2 {
                 panel.split = GroupSplit::Horizontal;
             } else {
-                if panel_def.elements.len() == 3 {
+                if panel_def.plots.len() == 3 {
                     panel.split = GroupSplit::ThreeTop;
                 } else {
-                    if panel_def.elements.len() == 4 {
+                    if panel_def.plots.len() == 4 {
                         panel.split = GroupSplit::Four;
                     } else {
                         return Err(format!("Invalid number of plots informed"));
@@ -389,7 +394,7 @@ impl Panel {
         // when they are inside a panel definition. The individual layout/design
         // for separate plots only apply when they are a single element with an
         // implicit panel definition.
-        for mut plot_def in panel_def.elements.drain(..) {
+        for mut plot_def in panel_def.plots.drain(..) {
 
             // Just overwrite them if set at the panel level.
             if plot_def.design.is_some() {
@@ -412,8 +417,8 @@ impl Panel {
 
         if let Some(layout) = panel_def.layout {
             panel.dimensions = (layout.width as usize, layout.height as usize);
-            panel.h_ratio = layout.horizontal_ratio;
-            panel.v_ratio = layout.vertical_ratio;
+            panel.h_ratio = layout.hratio;
+            panel.v_ratio = layout.vratio;
 
             if let Some(split) = &layout.split {
                 let split = GroupSplit::from_str(split)

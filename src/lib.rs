@@ -1,3 +1,8 @@
+/*Copyright (c) 2022 Diego da Silva Lima. All rights reserved.
+
+This work is licensed under the terms of the MIT license.  
+For a copy, see <https://opensource.org/licenses/MIT>.*/
+
 // Perhaps rename to spec?
 pub mod model;
 

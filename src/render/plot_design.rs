@@ -1,3 +1,8 @@
+/*Copyright (c) 2022 Diego da Silva Lima. All rights reserved.
+
+This work is licensed under the terms of the MIT license.  
+For a copy, see <https://opensource.org/licenses/MIT>.*/
+
 use gdk4::RGBA;
 // use libxml::tree::node::Node;
 // use super::utils;
@@ -33,12 +38,12 @@ impl PlotDesign {
 
     pub fn new_from_json(rep : crate::model::Design) -> Result<Self, Box<dyn Error>> {
         rep.validate()?;
-        let bg_color = rep.bg_color.parse().or(Err(DesignError::InvalidBackgroundColor))?;
-        let grid_color = rep.grid_color.parse().or(Err(DesignError::InvalidGridColor))?;
+        let bg_color = rep.bgcolor.parse().or(Err(DesignError::InvalidBackgroundColor))?;
+        let grid_color = rep.fgcolor.parse().or(Err(DesignError::InvalidGridColor))?;
         let design = Self {
             bg_color,
             grid_color,
-            grid_width : rep.grid_width,
+            grid_width : rep.width,
             font : text::FontData::new_from_string(&rep.font)
         };
         Ok(design)

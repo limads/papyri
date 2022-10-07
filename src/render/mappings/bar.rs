@@ -1,3 +1,8 @@
+/*Copyright (c) 2022 Diego da Silva Lima. All rights reserved.
+
+This work is licensed under the terms of the MIT license.  
+For a copy, see <https://opensource.org/licenses/MIT>.*/
+
 // use libxml::tree::node::Node;
 use gdk4::RGBA;
 use cairo::Context;
@@ -188,9 +193,9 @@ impl BarMapping {
 
         // Update the other dimension, which should remain fixed.
         if self.horizontal {
-            self.h = (0..self.w.len()).map(|_| self.bar_spacing * self.bar_width / 100. ).collect();
+            self.h = (0..self.w.len()).map(|_| self.bar_spacing * self.bar_width ).collect();
         } else {
-            self.w = (0..self.h.len()).map(|_| self.bar_spacing * self.bar_width / 100. ).collect();
+            self.w = (0..self.h.len()).map(|_| self.bar_spacing * self.bar_width ).collect();
         }
     }
 
@@ -214,15 +219,15 @@ impl Mapping for BarMapping {
     fn update_from_json(&mut self, rep : crate::model::Mapping) {
         // TODO check properties of other mappings are None.
 
-        if let Some(w) = rep.bar_width {
+        if let Some(w) = rep.width {
             self.bar_width = w;
         }
 
-        if let Some(h) = rep.horizontal {
-            self.horizontal = h;
+        if let Some(v) = rep.vertical {
+            self.horizontal = !v;
         }
 
-        if let Some(s) = rep.bar_spacing {
+        if let Some(s) = rep.spacing {
             self.bar_spacing = s;
         }
 
@@ -234,7 +239,7 @@ impl Mapping for BarMapping {
             }
         }
 
-        if let Some(c) = rep.center_anchor {
+        if let Some(c) = rep.center {
             self.center_anchor = c;
         }
 

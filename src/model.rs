@@ -1,3 +1,8 @@
+/*Copyright (c) 2022 Diego da Silva Lima. All rights reserved.
+
+This work is licensed under the terms of the MIT license.  
+For a copy, see <https://opensource.org/licenses/MIT>.*/
+
 use serde::{Serialize, Deserialize};
 use std::default::Default;
 use std::fmt;
@@ -135,14 +140,14 @@ impl MappingType {
                 hash.insert(String::from("radius"), String::from("1"));
             },
             MappingType::Bar => {
-                hash.insert(String::from("center_anchor"), String::from("false"));
+                hash.insert(String::from("center"), String::from("false"));
                 hash.insert(String::from("horizontal"), String::from("false"));
                 hash.insert(String::from("width"), String::from("None"));
                 hash.insert(String::from("height"), String::from("None"));
-                hash.insert(String::from("bar_width"), String::from("100"));
+                hash.insert(String::from("width"), String::from("100"));
                 hash.insert(String::from("origin_x"), String::from("0"));
                 hash.insert(String::from("origin_y"), String::from("0"));
-                hash.insert(String::from("bar_spacing"), String::from("1"));
+                hash.insert(String::from("spacing"), String::from("1"));
             },
             MappingType::Area => {
                 hash.insert(String::from("ymax"), String::from("None"));
@@ -175,9 +180,9 @@ carry a layout and design, they refer to the design and layout of the implicit
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Design {
-    pub bg_color : String,
-    pub grid_color : String,
-    pub grid_width : i32,
+    pub bgcolor : String,
+    pub fgcolor : String,
+    pub width : i32,
     pub font : String
 }
 
@@ -190,13 +195,13 @@ impl DesignBuilder {
         self.0
     }
 
-    pub fn bg_color(mut self, s : &str) -> Self {
-        self.0.bg_color = s.to_string();
+    pub fn bgcolor(mut self, s : &str) -> Self {
+        self.0.bgcolor = s.to_string();
         self
     }
 
-    pub fn grid_color(mut self, s : &str) -> Self {
-        self.0.grid_color = s.to_string();
+    pub fn fgcolor(mut self, s : &str) -> Self {
+        self.0.fgcolor = s.to_string();
         self
     }
 
@@ -205,8 +210,8 @@ impl DesignBuilder {
         self
     }
 
-    pub fn grid_width(mut self, width : i32) -> Self {
-        self.0.grid_width = width;
+    pub fn width(mut self, width : i32) -> Self {
+        self.0.width = width;
         self
     }
 
@@ -228,13 +233,13 @@ pub enum DesignError {
 impl Design {
 
     pub fn validate(&self) -> Result<(), DesignError> {
-        if self.grid_width < 0 || self.grid_width > 50 {
+        if self.width < 0 || self.width > 50 {
             Err(DesignError::InvalidGridWidth)?;
         }
-        if !crate::model::validate_color(&self.grid_color) {
+        if !crate::model::validate_color(&self.fgcolor) {
             Err(DesignError::InvalidGridColor)?;
         }
-        if !crate::model::validate_color(&self.bg_color) {
+        if !crate::model::validate_color(&self.bgcolor) {
             Err(DesignError::InvalidBackgroundColor)?;
         }
         Ok(())
@@ -253,9 +258,9 @@ impl Design {
 impl Default for Design {
     fn default() -> Self {
         Self {
-            bg_color : String::from("#ffffff"),
-            grid_color : String::from("#d3d7cf"),
-            grid_width : 1,
+            bgcolor : String::from("#ffffff"),
+            fgcolor : String::from("#d3d7cf"),
+            width : 1,
             font : String::from("Monospace Regular 12")
         }
     }
@@ -268,8 +273,8 @@ impl Default for Design {
 pub struct Layout {
     pub width : i32,
     pub height : i32,
-    pub horizontal_ratio : f64,
-    pub vertical_ratio : f64,
+    pub hratio : f64,
+    pub vratio : f64,
     pub split : Option<String>
 }
 
@@ -303,13 +308,13 @@ impl LayoutBuilder {
         self
     }
 
-    pub fn horizontal_ratio(mut self, ratio : f64) -> Self {
-        self.0.horizontal_ratio = ratio;
+    pub fn hratio(mut self, ratio : f64) -> Self {
+        self.0.hratio = ratio;
         self
     }
 
-    pub fn vertical_ratio(mut self, ratio : f64) -> Self {
-        self.0.vertical_ratio = ratio;
+    pub fn vratio(mut self, ratio : f64) -> Self {
+        self.0.vratio = ratio;
         self
     }
 
@@ -324,8 +329,8 @@ impl Default for Layout {
         Self {
             width : 800,
             height : 600,
-            horizontal_ratio : 0.5,
-            vertical_ratio : 0.5,
+            hratio : 0.5,
+            vratio : 0.5,
             split : None
         }
     }
@@ -354,7 +359,7 @@ pub struct Scale {
     pub precision : i32,
     pub from : f64,
     pub to : f64,
-    pub n_intervals : i32,
+    pub intervals : i32,
     pub log : bool,
     pub invert : bool,
     pub offset : i32,
@@ -395,7 +400,7 @@ impl Default for Scale {
             precision : 2,
             from : 0.0,
             to : 1.0,
-            n_intervals : 5,
+            intervals : 5,
             log : false,
             invert : false,
             offset : 0,
@@ -427,8 +432,8 @@ impl ScaleBuilder {
         self
     }
 
-    pub fn n_intervals(mut self, n_intervals : i32) -> Self {
-        self.0.n_intervals = n_intervals;
+    pub fn intervals(mut self, intervals : i32) -> Self {
+        self.0.intervals = intervals;
         self
     }
 
@@ -771,11 +776,11 @@ impl From<Label> for Mapping {
 pub struct Bar {
     pub map : Map,
     pub color : String,
-    pub bar_width : f64,
-    pub bar_spacing : f64,
+    pub width : f64,
+    pub spacing : f64,
     pub origin : f64,
-    pub center_anchor : bool,
-    pub horizontal : bool,
+    pub center : bool,
+    pub vertical : bool,
 }
 
 pub struct BarBuilder(Bar);
@@ -792,12 +797,12 @@ impl BarBuilder {
     }
 
     pub fn width(mut self, width : f64) -> Self {
-        self.0.bar_width = width;
+        self.0.width = width;
         self
     }
 
-    pub fn bar_spacing(mut self, bar_spacing : f64) -> Self {
-        self.0.bar_spacing = bar_spacing;
+    pub fn spacing(mut self, spacing : f64) -> Self {
+        self.0.spacing = spacing;
         self
     }
 
@@ -806,13 +811,13 @@ impl BarBuilder {
         self
     }
 
-    pub fn center_anchor(mut self, center : bool) -> Self {
-        self.0.center_anchor = center;
+    pub fn center(mut self, center : bool) -> Self {
+        self.0.center = center;
         self
     }
 
-    pub fn horizontal(mut self, horizontal : bool) -> Self {
-        self.0.horizontal = horizontal;
+    pub fn vertical(mut self, vertical : bool) -> Self {
+        self.0.vertical = vertical;
         self
     }
 }
@@ -835,11 +840,11 @@ impl Default for Bar {
         Bar {
             map : Map::default(),
             color : String::from("#000000"),
-            bar_width : 100.0,
-            bar_spacing : 1.0,
+            width : 1.0,
+            spacing : 1.0,
             origin : 0.,
-            center_anchor : false,
-            horizontal : false,
+            center : false,
+            vertical : true,
         }
     }
 
@@ -848,16 +853,16 @@ impl Default for Bar {
 impl From<Bar> for Mapping {
 
     fn from(bar : Bar) -> Self {
-        let Bar { map, color, bar_width, bar_spacing, origin, center_anchor, horizontal, .. } = bar;
+        let Bar { map, color, width, spacing, origin, center, vertical, .. } = bar;
         Mapping {
             kind : String::from("bar"),
             map : Some(map),
             color : Some(color),
             origin : Some(origin),
-            center_anchor :  Some(center_anchor),
-            horizontal : Some(horizontal),
-            bar_width : Some(bar_width),
-            spacing : Some(bar_spacing as i32),
+            center :  Some(center),
+            vertical : Some(vertical),
+            width : Some(width),
+            spacing : Some(spacing as i32),
             ..Default::default()
         }
     }
@@ -878,6 +883,9 @@ pub struct Mapping {
     pub width : Option<f64>,
     pub spacing : Option<i32>,
 
+    // Shared by interval/bar
+    pub vertical : Option<bool>,
+    
     // text-specific
     pub font : Option<String>,
 
@@ -886,13 +894,9 @@ pub struct Mapping {
 
     // Interval-specific
     pub limits : Option<f64>,
-    pub vertical : Option<bool>,
-
+   
     // Bar-specific
-    pub center_anchor : Option<bool>,
-    pub horizontal : Option<bool>,
-    pub bar_width : Option<f64>,
-    pub bar_spacing : Option<f64>,
+    pub center : Option<bool>,
     pub origin : Option<f64>,
 
 }
@@ -923,8 +927,8 @@ impl Mapping {
     pub fn has_specific_property(&self, kind : MappingType) -> bool {
         match kind {
             MappingType::Bar => {
-                self.center_anchor.is_some() || self.horizontal.is_some() ||
-                    self.bar_width.is_some() || self.bar_spacing.is_some() || self.origin.is_some()
+                self.center.is_some() || self.vertical.is_some() ||
+                    self.width.is_some() || self.spacing.is_some() || self.origin.is_some()
             },
             MappingType::Interval => {
                 self.limits.is_some() || self.vertical.is_some()
@@ -1123,7 +1127,7 @@ pub struct Panel {
 
     // TODO add this field and derive deserialize here manually.
     // pub elements : Vec<Either<Box<Panel>, Plot>>,
-    pub elements : Vec<Plot>,
+    pub plots : Vec<Plot>,
 
     pub design : Option<Design>,
 
@@ -1135,7 +1139,7 @@ impl Default for Panel {
 
     fn default() -> Self {
         Panel {
-            elements : Vec::new(),
+            plots : Vec::new(),
             design : Some(Design::default()),
             layout : Some(Layout::default())
         }
@@ -1164,7 +1168,7 @@ impl PanelBuilder {
     }
 
     pub fn plots<const U : usize>(mut self, plots : [Plot; U]) -> Self {
-        self.0.elements = Vec::from(plots);
+        self.0.plots = Vec::from(plots);
         self
     }
 
