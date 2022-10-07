@@ -481,7 +481,7 @@ pub struct Map {
 pub struct Line {
     pub map : Map,
     pub width : f64,
-    pub spacing : i32,
+    pub spacing : f64,
     pub color : String
 }
 
@@ -503,7 +503,7 @@ impl LineBuilder {
         self
     }
 
-    pub fn spacing(mut self, spacing : i32) -> Self {
+    pub fn spacing(mut self, spacing : f64) -> Self {
         self.0.spacing = spacing;
         self
     }
@@ -532,7 +532,7 @@ impl Default for Line {
         Line {
             map : Map::default(),
             width : 1.0,
-            spacing : 1,
+            spacing : 1.0,
             color : String::from("#000000")
         }
     }
@@ -862,7 +862,7 @@ impl From<Bar> for Mapping {
             center :  Some(center),
             vertical : Some(vertical),
             width : Some(width),
-            spacing : Some(spacing as i32),
+            spacing : Some(spacing),
             ..Default::default()
         }
     }
@@ -881,7 +881,7 @@ pub struct Mapping {
 
     // Shared by line, bar and interval
     pub width : Option<f64>,
-    pub spacing : Option<i32>,
+    pub spacing : Option<f64>,
 
     // Shared by interval/bar
     pub vertical : Option<bool>,

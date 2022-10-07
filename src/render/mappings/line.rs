@@ -179,7 +179,7 @@ impl Mapping for LineMapping {
             self.width = width;
         }
         if let Some(dash_n) = rep.spacing {
-            self.dash_n = dash_n;
+            self.dash_n = dash_n as i32;
         }
         if let Some(color) = rep.color.clone() {
             self.color = color.parse().unwrap();

@@ -11,7 +11,6 @@ use super::*;
 use std::cmp::*;
 use std::default::Default;
 use super::super::{MappingProperty, IntervalProperty};
-
 use std::borrow::Borrow;
 use crate::model::MappingType;
 
@@ -224,7 +223,7 @@ impl Mapping for IntervalMapping {
             self.width = width;
         }
         if let Some(dash_n) = rep.spacing {
-            self.dash_n = dash_n;
+            self.dash_n = dash_n as i32;
         }
         if let Some(color) = rep.color.clone() {
             self.color = color.parse().unwrap();
