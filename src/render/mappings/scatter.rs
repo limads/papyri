@@ -3,19 +3,16 @@
 This work is licensed under the terms of the MIT license.  
 For a copy, see <https://opensource.org/licenses/MIT>.*/
 
-// use libxml::tree::node::Node;
 use gdk4::RGBA;
 use cairo::Context;
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
 use std::f64::consts::PI;
-// use super::utils;
 use super::*;
 use std::cmp::*;
 use std::str::FromStr;
 use super::super::{MappingProperty, ScatterProperty};
 use std::borrow::Borrow;
-use crate::model::MappingType;
 
 #[derive(Debug, Clone)]
 pub struct ScatterMapping {
@@ -65,20 +62,6 @@ impl ScatterMapping {
         scatter
     }
 
-    /*pub fn new(node : &Node) -> Result<Self,String> {
-        let color = RGBA::black();
-        let radius = 1.0;
-        let x = Vec::<f64>::new();
-        let y = Vec::<f64>::new();
-        let col_names = [
-            String::from("None"),
-            String::from("None")
-        ];
-        let source = String::new();
-        let mut mapping = ScatterMapping{color, x, y, radius, col_names, source};
-        mapping.update_layout(node)?;
-        Ok(mapping)
-    }*/
 }
 
 impl Mapping for ScatterMapping {
@@ -145,49 +128,7 @@ impl Mapping for ScatterMapping {
     }
 
     fn update_extra_data(&mut self, _values : Vec<Vec<String>>) {
-        // println!("Mapping has no extra data");
-    }
 
-    /*fn update_layout(&mut self, node : &Node) -> Result<(), String> {
-        let props = utils::children_as_hash(node, "property");
-        self.color = props.get("color")
-            .ok_or(format!("color property not found"))?
-            .parse()
-            .map_err(|_| format!("Unable to parse color property"))?;
-        self.radius = props.get("radius")
-            .ok_or(format!("radius property not found"))?
-            .parse()
-            .map_err(|_| format!("Unable to parse radius property"))?;
-        self.col_names[0] = props.get("x")
-            .ok_or(format!("x property not found"))?
-            .clone();
-        self.col_names[1] = props.get("y")
-            .ok_or(format!("y property not found"))?
-            .clone();
-        self.source = props.get("source")
-            .ok_or(format!("Source property not found"))?
-            .clone();
-        Ok(())
-    }*/
-
-    fn properties(&self) -> HashMap<String, String> {
-        let mut properties = MappingType::Scatter.default_hash();
-        if let Some(e) = properties.get_mut("color") {
-            *e = self.color.to_string();
-        }
-        if let Some(e) = properties.get_mut("radius") {
-            *e = self.radius.to_string();
-        }
-        if let Some(e) = properties.get_mut("x") {
-            *e = self.col_names[0].clone();
-        }
-        if let Some(e) = properties.get_mut("y") {
-            *e = self.col_names[1].clone();
-        }
-        if let Some(e) = properties.get_mut("source") {
-            *e = self.source.clone();
-        }
-        properties
     }
 
     fn mapping_type(&self) -> String {

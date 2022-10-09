@@ -44,8 +44,6 @@ pub use mappings::scatter::*;
 
 pub use mappings::line::*;
 
-// pub use mappings::surface::*;
-
 pub use mappings::text::*;
 
 pub use mappings::area::*;
@@ -232,8 +230,7 @@ impl Default for Panel {
             split : GroupSplit::Unique,
             h_ratio : 0.5,
             v_ratio : 0.5,
-            dimensions : (800, 600),
-            // doc : Document::new().unwrap()
+            dimensions : (800, 600)
         }
     }
 
@@ -338,26 +335,20 @@ impl Panel {
         unimplemented!()
     }
 
-    /*pub fn update_panel_directly(&mut self, prop : &str, val : &str) {
-        match prop {
-            "split" => { self.split = GroupSplit::from_str(val).unwrap() },
-            "vertical_ratio" => { self.v_ratio = f64::from_str(val).unwrap() },
-            "horizontal_ratio" => { self.h_ratio = f64::from_str(val).unwrap() },
-            _ => panic!("Unrecognized panel property")
-        }
-    }*/
-
     pub fn new() -> Self {
         Default::default()
     }
 
     pub fn new_from_single(plot : crate::model::Plot) -> Result<Self, String> {
+        
+        plot.validate().map_err(|e| format!("{}", e) )?;
+        
         let design_json = plot.design.clone().unwrap_or_default();
         let layout_json = plot.layout.clone().unwrap_or_default();
         let design = PlotDesign::new_from_json(design_json)
-            .map_err(|e| format!("Error parsing design = {}", e))?;
+            .map_err(|e| format!("Invalid design: {}", e))?;
         let area = Plot::new_from_model(plot)
-            .map_err(|e| format!("Error parsing area from JSON definition = {}", e) )?;
+            .map_err(|e| format!("Invalid plot: {}", e) )?;
         Ok(Self {
             design,
             plots : vec![area],
@@ -369,6 +360,9 @@ impl Panel {
     }
 
     pub fn new_from_model(mut panel_def : crate::model::Panel) -> Result<Self, String> {
+    
+        panel_def.validate().map_err(|e| format!("{}", e) )?;
+        
         let mut panel : Panel = Default::default();
         panel.plots.clear();
 
@@ -406,7 +400,7 @@ impl Panel {
             }
 
             let plot = Plot::new_from_model(plot_def)
-                .map_err(|e| format!("Error parsing area from JSON definition = {}", e) )?;
+                .map_err(|e| format!("Invalid plot: {}", e) )?;
             panel.plots.push(plot);
         }
 
@@ -450,8 +444,7 @@ impl Panel {
                 Self::new_from_model(panel_def)
             },
             Err(_e) => {
-                // println!("Error parsing panel = {}", e);
-                // println!("{}", json);
+                
                 let plot : crate::model::Plot = serde_json::from_str(json)
                     .map_err(|e| format!("Error parsing plot = {}", e) )?;
                 Self::new_from_single(plot)
@@ -500,16 +493,6 @@ impl Panel {
 
         let stream = surf.finish_output_stream().unwrap();
 
-        /*
-        Requires 14.0
-        match surf.status() {
-            Ok(_) => {
-
-            },
-            Err(e) => {
-                panic!("Surface error: {}", e);
-            }
-        }*/
         surf.flush();
 
         Ok(String::from_utf8(stream.downcast_ref::<Vec<u8>>().unwrap().clone())?)
@@ -696,10 +679,6 @@ impl Panel {
 
     pub fn design_info(&self) -> HashMap<String, String> {
         self.design.description()
-    }
-
-    pub fn mapping_info(&self, ix : usize) -> Vec<(String, String, HashMap<String,String>)> {
-        self.plots[ix].mapping_info()
     }
 
     pub fn group_split(&self) -> GroupSplit {
@@ -966,22 +945,6 @@ impl Plot {
         Some(((min_x, max_x), (min_y, max_y)))
     }
 
-    /*fn read_grid_segment(
-        &self,
-        props : HashMap<String, String>
-    ) -> Result<Scale, Box<dyn Error>> {
-        let from : f64 = props.get("from").unwrap().parse()?;
-        let to : f64 = props["to"].parse()?;
-        let nint : i32 = props["n_intervals"].parse()?;
-        let offset : i32 = props["grid_offset"].parse()?;
-        let invert : bool = props["invert"].parse()?;
-        let log : bool = props["log_scaling"].parse()?;
-        let precision : i32 = props["precision"].parse()?;
-        let label = props["label"].clone();
-        Ok( Scale::new_full(
-            label, precision, from, to, nint, log, invert, offset, Adjustment::Off) )
-    }*/
-
     fn accomodate_dimension(
         &mut self,
         data : &[f64],
@@ -1049,36 +1012,6 @@ impl Plot {
         }
     }
 
-    /*pub fn remove_mapping(&mut self, id : &str) -> Result<(Box<dyn Mapping>, Node), String> {
-        let n = self.mappings.len();
-        let pos = id.parse::<usize>().map_err(|e| format!("Node id is not an integer: {}", id))?;
-        //let mut root = self.doc.get_root_element().expect("No root at remove");
-        let xpath = String::from("object[@index='") + id +  "']";
-        // println!("Removing mapping at path: {}", xpath);
-        let mut nodes = self.node.findnodes(&xpath[..])
-            .map_err(|_| format!("No node with informed id: {}", id))?;
-        let node = nodes.get_mut(0)
-            .ok_or(format!("No first node with informed id: {}", id))?;
-        node.unlink_node();
-        let mapping = self.mappings.remove(pos);
-        for i in (pos + 1)..n {
-            let next_xpath = String::from("object[@index='") + &i.to_string()[..] +  "']";
-            let mut nodes = self.node.findnodes(&next_xpath[..])
-                .map_err(|e| format!("No next node with informed id: {}", i))?;
-
-            // TODO error here at node removal
-            let next_node = nodes.get_mut(0).ok_or(format!("No first node with informed id: {}", id))?;
-            next_node.set_attribute("index", &((i - 1).to_string())[..])
-                .map_err(|e| format!("Node {} missing index property", i));
-        }
-        self.reload_mappings()?;
-        // for m in self.mappings.iter() {
-        //    println!("Current remaining mappings: {:?}", m.mapping_type());
-        // }
-        // println!("Mapping {} removed successfully", id);
-        Ok((mapping, node.clone()))
-    }*/
-
     pub fn update_mapping_text(
         &mut self,
         id : &str,
@@ -1093,87 +1026,7 @@ impl Plot {
                 "Unable to update text mapping position"
             )))
         }
-
-        /*
-            // println!("{}, {:?}", mapping.mapping_type(), mapping.properties());
-            {
-            // let mapping = mapping as &mut dyn Any;
-            // println!("{:?}", (mapping as &mut dyn Any).type_id());
-            match (mapping as &mut dyn Any).downcast_mut::<TextMapping>() {
-                Some(m) => {
-                    m.set_text_data(&text);
-                    Ok(())
-                },
-                None => {
-                    Err(Box::new(std::io::Error::new(
-                        ErrorKind::Other,
-                        "Informed mapping does not support text update"
-                    )))
-                }
-            }
-            }
-        } else {
-            Err(Box::new(std::io::Error::new(
-                ErrorKind::Other, "Cannot recover mapping")))
-        }*/
     }
-
-    /*/* Given a resolvable full path to a property, update it. */
-    pub fn update_layout(&mut self, property : &str, value : &str) -> Result<(), String> {
-        // let root = self.doc.get_root_element().expect("No root");
-        // println!("{} : {}", property, value);
-        if property.is_empty() || value.is_empty() {
-            return Err(format!("Informed empty property!"));
-        }
-
-        match self.node.findnodes(&property) {
-            Ok(mut props) => {
-                if let Some(p) = props.iter_mut().next() {
-                    if let Err(e) = p.set_content(&value) {
-                        println!("Error setting node content: {}", e);
-                    }
-                    // println!("new node content: {:?}, {:?}", p.get_property("name"), p.get_content());
-                    // println!("new node at root: {:?}", self.node.get_content());
-                    let parent = p.get_parent().unwrap();
-                    match parent.get_attribute("class") {
-                        Some(ref class) if class == "mapping" => {
-                            if let Some(index) = parent.get_attribute("index") {
-                                if let Some(m) = self.mappings.get_mut(index.parse::<usize>().unwrap()) {
-                                    m.update_layout( &parent )?;
-                                } else {
-                                    println!("No mapping at {} available", index);
-                                }
-                            } else {
-                                println!("Invalid mapping index");
-                            }
-                        },
-                        Some(ref class) if class != "mapping" => {
-                            //println!(
-                            //    "Updated property: {:?}",
-                            //    self.node.findnodes(property).unwrap().iter().next().unwrap().get_content()
-                            //);
-                            if let Err(e) = self.reload_layout_node() {
-                                println!("Could not apply property {} ({})", property, e);
-                            }
-                            //println!(
-                            //    "Updated property after reload: {:?}",
-                            //    self.node.findnodes(property).unwrap().iter().next().unwrap().get_content()
-                            //);
-                        },
-                        _ => {
-                            println!("Layout item missing class attribute.");
-                        }
-                    }
-                } else {
-                    println!("{}", "Property ".to_owned() + property + " not found!");
-                }
-            },
-            Err(e) => {
-                println!("No property {} found at node {:?} ({:?})", property, self.node, e);
-            }
-        }
-        Ok(())
-    }*/
 
     pub fn clear_all_data(&mut self) {
         for m in self.mappings.iter_mut() {
@@ -1229,8 +1082,11 @@ impl Plot {
             design.bg_color.blue().into()
         );
         ctx.rectangle(
-            0.1*(self.mapper.w as f64), 0.1*(self.mapper.h as f64),
-            0.8*(self.mapper.w as f64), 0.8*(self.mapper.h as f64));
+            context_mapper::REL_X_OFFSET*(self.mapper.w as f64), 
+            context_mapper::REL_Y_OFFSET*(self.mapper.h as f64),
+            context_mapper::REL_WIDTH*(self.mapper.w as f64), 
+            context_mapper::REL_HEIGHT*(self.mapper.h as f64)
+        );
         ctx.fill()?;
         ctx.restore()?;
         Ok(())
@@ -1252,12 +1108,6 @@ impl Plot {
         ctx.move_to(from.x, from.y);
         ctx.line_to(to.x, to.y);
         ctx.stroke()?;
-
-        //ctx.set_source_rgb(0.2666, 0.2666, 0.2666);
-        //ctx.move_to(from.x + label_off_x, from.y + label_off_y);
-        //ctx.show_text(&label);
-        //self.draw_centered_label(ctx, &label, Coord2D::new(from.x + label_off_x, from.y + label_off_y), false);
-        //self.draw_grid_value(ctx, &label)
         ctx.restore()?;
         Ok(())
     }
@@ -1307,14 +1157,6 @@ impl Plot {
             .fold(0.0, |m, f| f64::max(m,f))
     }
 
-    /*fn shift_coord_by_max_extent(
-        base_coord : Coord2D,
-        max_extent : f64
-    ) -> Coord2D {
-
-            .collect()
-    }*/
-
     fn draw_grid(&self, ctx : &Context, design : &PlotDesign) -> Result<(), Box<dyn Error>> {
         ctx.save()?;
         ctx.set_line_width(design.grid_width as f64);
@@ -1339,9 +1181,7 @@ impl Plot {
                 (true, false) =>  self.mapper.map(self.mapper.xmin + self.mapper.xmax - *x, self.mapper.ymax),
                 (true, true) => self.mapper.map(self.mapper.xmin + self.mapper.xmax - *x, self.mapper.ymin)
             };
-            // let from = self.mapper.map(*x, self.mapper.ymin);
-            // let to = match self.mapper.self.mapper.map(*x, self.mapper.ymax);
-            // println!("{:?}, {:?}, {:?}", x, from, to);
+            
             self.draw_grid_line(ctx, design, from, to)?;
             self.draw_grid_value(ctx, design, x_label, from, true, 0.0, 1.5)?;
         }
@@ -1385,11 +1225,6 @@ impl Plot {
             self.mapper.w as f64 * 0.5,
             self.mapper.h as f64 * 0.975
         );
-        // export POS_X=0.1
-        let pos_y = Coord2D::new(
-            self.mapper.w as f64 * 0.025,
-            self.mapper.h as f64 * 0.5
-        );
         text::draw_label(
             &design.font.sf,
             ctx,
@@ -1400,6 +1235,12 @@ impl Plot {
             None,
             None
         )?;
+        
+        // export POS_X=0.1
+        let pos_y = Coord2D::new(
+            self.mapper.w as f64 * 0.005, // self.mapper.w as f64 * 0.025,
+            self.mapper.h as f64 * 0.5
+        );
         text::draw_label(
             &design.font.sf,
             ctx,
@@ -1411,20 +1252,6 @@ impl Plot {
             None
         )?;
         Ok(())
-    }
-
-    /*fn update_mapping_name(name : &str) {
-        // Verify if mapping name is not x|y|design|
-    }*/
-
-    /// For each mapping, return a tuple with (name, type, properties).
-    pub fn mapping_info(&self) -> Vec<(String, String, HashMap<String,String>)> {
-        let mut info = Vec::new();
-        for (i, m) in self.mappings.iter().enumerate() {
-            info.push((i.to_string(), m.mapping_type(), m.properties()))
-        }
-        //println!("{:?}", info);
-        info
     }
 
     pub fn mapping_column_names(&self, id : &str) -> Vec<(String, String)> {
@@ -1455,9 +1282,6 @@ impl Plot {
         } else {
             println!("Mapping not found when updating column name");
         }
-        // if let Err(e) = self.reload_layout_node() {
-        //    println!("{}", e);
-        // }
         Ok(())
     }
 
@@ -1478,338 +1302,5 @@ impl Plot {
         self.mappings.iter().map(|mapping| mapping.get_source() ).collect()
     }
 
-    /*pub fn update_mapping_column(
-        &mut self,
-        id : &str,
-        column : &str,
-        name : &str
-    ) {
-        if let Some(mapping) = self.mappings.get_mut(id.parse::<usize>().unwrap()) {
-            mapping.set_col_name(column, name);
-        } else {
-            println!("Mapping not found when updating column name");
-        }
-        if let Err(e) = self.reload_layout_data() {
-            println!("{}", e);
-        }
-    }*/
-
-    /*pub fn get_mapping_column(
-        &self,
-        id : &str,
-        column : &str
-    ) -> Option<String> {
-        if let Some(mapping) = self.mappings.get(id.parse::<usize>().unwrap()) {
-            let col_name = mapping.get_col_name(column);
-            if col_name != "None" {
-                Some(col_name)
-            } else {
-                None
-            }
-        } else {
-            println!("Mapping not found when getting column name");
-            None
-        }
-    }*/
-
 }
 
-//#[repr(C)]
-
-/*pub mod utils {
-
-    use super::Node;
-    use super::HashMap;
-    use super::Document;
-    use super::Error;
-
-    /// Return all children of node that satisfy the
-    /// informed xpath.
-    pub fn children_as_hash(
-        node : &Node,
-        xpath : &str
-    ) -> HashMap<String, String> {
-        let mut prop_hash = HashMap::new();
-        if let Ok(props) = node.findnodes(xpath) {
-            if props.len() == 0 {
-                panic!("No children found for node {:?} at path {}", node, xpath);
-            }
-            for prop in props.iter() {
-                // println!("Property = {:?}", prop);
-                let name = prop.get_attribute("name")
-                    .expect(&format!("No name attribute found for property {:?}", prop));
-                let value = prop.get_content();
-                prop_hash.insert(name, value);
-            }
-        } else {
-            panic!("Failed to retrieve children of {:?} at path {}", node, xpath);
-        }
-        prop_hash
-    }
-
-    /*pub fn populate_node_with_hash(
-        doc : &Document,
-        node : &mut Node,
-        hash : HashMap<String, String>
-    ) -> Result<(), Box<dyn Error>> {
-        for (k, v) in hash {
-            let mut property = Node::new(
-                "property", Option::None, doc).unwrap();
-            property.set_attribute("name", &k[..])?;
-            property.set_content(&v[..])?;
-            node.add_child(&mut property)?;
-        }
-        Ok(())
-    }
-
-    pub fn edit_node_with_hash(
-        doc : &Document,
-        props : &HashMap<String, String>,
-        node : &mut Node
-    ) {
-        let mut keys : Vec<String> = props.iter().map(|(k, v)| k.clone() ).collect();
-        // println!("Keys: {:?}", keys);
-        let mut n_changed = 0;
-        // println!("Child nodes: {:?}", node.get_child_nodes().iter().map(|node| format!("{} {:?}", node.get_name(), node.get_property("name"))).collect::<Vec<_>>() );
-        for mut child in node.get_child_nodes().iter_mut() {
-            if &child.get_name()[..] == "property" {
-                if let Some(name) = child.get_attribute("name") {
-                    // if keys.iter().find(|k| &k[..] == &name[..] ).is_some() {
-                    child.set_content(&props[&name]).unwrap();
-                    n_changed += 1;
-                    //} else {
-                    //    println!("No property named {}", name);
-                    //}
-                } else {
-                    println!("Node does not have name property");
-                }
-            }
-        }
-        let n_required = props.iter().count();
-        if n_changed != n_required {
-            println!("Changed only {} nodes (of {} required)", n_changed, n_required);
-        }
-    }*/
-
-}*/
-
-/*#[no_mangle]
-pub extern "C" fn interactive(engine : &mut interactive::Engine) {
-    engine.register_type::<Panel>()
-        .register_fn("new_panel", Panel::new )
-        .register_fn("show", |panel : &mut Panel| { panel.show_with_eog().unwrap() });
-}*/
-
-// fn module_func(a : i64) -> Result<i64, Box<interactive::EvalAltResult>> {
-//    Ok(a)
-// }
-
-/*#[export_name="panel_module"]
-    extern "C" fn module() -> Box<interactive::Module> {
-
-        // use rhai::func::register::*;
-
-        let mut m = interactive::Module::new();
-        let hash = m.set_native_fn("module_func", Box::new(|a : i64| -> Result<i64, Box<interactive::EvalAltResult>> { Ok(a) }));
-        println!("Inserted hash: {}", hash);
-        // m.set_native_fn("module_func", module_func);
-        Box::new(m)
-    }
-
-    #[export_name="register_panel"]
-    extern "C" fn interactive(engine : &mut interactive::Engine) {
-
-        engine.register_fn("do_thing", Box::new(|a : i64| -> i64 { a }));
-        engine.register_fn("do_nothing", Box::new(|| { println!("Do nothing") }));
-
-        println!("Symbols loaded from client lib");
-        println!("Type id at client: {:?}", std::any::TypeId::of::<i64>());
-
-        println!("Calling from client: {:?}", engine.eval::<i64>("do_thing(44)"));
-        println!("Calling do_nothing from client: {:?}", engine.eval::<()>("do_nothing()"));
-
-        //engine.register_type::<Panel>()
-        //    .register_fn("new_panel", Box::new(move || Panel::new ) )
-        //    .register_fn("show", Box::new(move |panel : &mut Panel| { panel.show_with_eog().unwrap() }) );
-    }
-
-    // fn display(engine : &mut interactive::Engine) {
-    //      By implementing:
-    //      engine.register_fn("to_string",	|x: &mut T| -> String)
-    //      engine.register_fn("to_debug",	|x: &mut T| -> String	format!("{:?}", x)
-    //      The custom functionality will be available: type.print(); type.debug(); "" + type; type + "", "" += type;
-    // }
-
-    // Initializer function - By using a function pointer, we guarantee it will be called only once,
-    // no matter how many types we register from this module.
-    // let mut module = Module::new();
-    // module.set_native_fn("inc", |x: i64| {
-    // fn init() -> fn(&mut Engine) {
-    //    let mut resolver = StaticModuleResolver::new();
-    //    resolver.insert("module_name", module);
-    //    Perhaps if we insert each type as a static module (e.g. module "Panel",
-    //    and make them readily avaiable, we can use them as if they were associated functions.
-    //    q::answer + 1
-    // }
-    // engine.set_module_resolver(resolver);
-
-    fn fields(engine : &mut interactive::Engine) {
-        /*register_get_set("field")
-            |panel| panel.field
-            |panel, value| panel.field = value*/
-
-
-        // register_indexer_get_set
-        // getter: Fn(&mut T, X) -> V
-        // setter: Fn(&mut T, X, V) Where X is an indexer type.
-    }*/
-
-/*#[cfg(feature="interactive")]
-#[export_name="register_methods"]
-extern "C" fn reg_methods(engine : &mut interactive::Engine) /*-> Box<interactive::Engine>*/ {
-
-    use interactive::Module;
-    use interactive::TypeId;
-    // let mut engine = Engine::new();
-
-    engine
-        .register_fn("new_panel", Box::new(move || Panel::new() ) )
-        .register_fn("show", Box::new(move |panel : &mut Panel| { panel.show_with_eog().unwrap() }) );
-
-    let mut module = Module::new();
-    let hash = module.set_native_fn("create", move || Ok(Panel::new()) );
-    module.update_fn_metadata(hash, &["Panel"]);
-
-    engine.register_static_module("Panel", module.into());
-
-    engine.register_fn("add_integer", |a : i64| a + 1 );
-    println!("Type id of integer at client = {:?}", TypeId::of::<i64>() );
-
-    let mut m = interactive::Module::new();
-    let hash = m.set_native_fn("module_func", Box::new(|a : i64| -> Result<i64, Box<interactive::EvalAltResult>> { Ok(a + 1) }));
-    println!("Inserted hash: {}", hash);
-    engine.register_static_module("mymodule", m.into());
-
-    println!("Symbols loaded from client lib");
-
-    /*Box::new(engine)*/
-}*/
-
-/*// nm -gD target/debug/libplots.so
-#[cfg(feature="interactive")]
-impl interactive::Interactive for Panel {
-
-    #[export_name="register_methods"]
-    extern "C" fn interactive(engine : &mut interactive::Engine) -> Box<interactive::RegistrationInfo> {
-        self.display(engine);
-        self.associated(engine);
-        engine
-            .register_fn("show", Box::new(move |panel : &mut Panel| { panel.show_with_eog().unwrap() }) );
-
-        self.info()
-        // let mut module = Module::new();
-        // let hash = module.set_native_fn("create", move || Ok(Panel::new()) );
-        // module.update_fn_metadata(hash, &["Panel"]);
-        // engine.register_static_module("Panel", module.into());
-    }
-
-    // Perhaps we abstract certain details away,
-    // and just require the registration of "associated" and "methods",
-    // automatically taking care of the plumbing without exposing the engine
-    // to the user.
-
-}*/
-
-/*impl interactive::Interactive for Plot {
-
-    #[export_name="register_plot"]
-    extern "C" fn interactive(engine : &mut interactive::Engine) {
-        /*engine.register_type::<Panel>()
-            .register_fn("new_panel", Panel::new )
-            .register_fn("show", |panel : &mut Panel| { panel.show_with_eog().unwrap() });*/
-    }
-
-}*/
-
-//impl IsA<gtk::DrawingArea> for PlotView {
-//}
-
-//Draw
-/*impl ObjectImpl for PlotView {
-
-    glib_object_impl!();
-
-    //fn get_type_data(&self) -> NonNull<TypeData> {
-    //}
-
-    //glib_wrapper! {
-    //}
-}*/
-//impl AsRef
-//unsafe impl IsA<gtk::DrawingArea> for PlotView {
-//}
-/*impl ObjectSubclass for PlotView {
-    const NAME: &'static str = "PlotView";
-    type ParentType = gtk::DrawingArea;
-    /* Glib classes are global runtime structs that are created
-    when the first object of a given class is instantiated,
-    and are destroyed when the last object of a given class
-    is destroyed. (There is only a single instance of each
-    class at any given time). The alias "Class" automatically
-    implements a boilerplate struct to hold this class. */
-    type Class = subclass::simple::ClassStruct<Self>;
-    /* The instante is a global runtime struct (also one for
-    each registered object) that describes things like
-    memory object layout. Also automatically created. */
-    type Instance = subclass::simple::InstanceStruct<Self>;
-
-    glib_object_subclass!();
-
-    fn class_init(klass: &mut Self::Class) {
-        klass.install_properties(&PROPERTIES);
-    }
-
-    fn new() -> Self {
-        let plot_area = Plot::new(String::from("assets/layout.xml"));
-        PlotView{plot_area}
-    }
-}*/
-// glib::Object::new(T::get_type(), &[])
-// get_type() registers type
-// glib_wrapper!
-
-// Used for overriding virtual methods - Must map to
-// Impl trait
-//unsafe impl IsSubclassable<PlotView>
-//for gtk::auto::drawing_area::DrawingAreaClass {
-
-//}
-
-//subclass::types::register_type();
-
-/*impl ObjectSubclass for PlotView {
-    const NAME: &'static str = "PlotView";
-
-    type ParentType = gtk::DrawingArea;
-
-    type Instance = PlotView;
-    type Class = PlotViewClass;
-
-    glib_object_subclass!();
-
-    fn class_init(klass: &mut PlotView) {
-        klass.install_properties(&PROPERTIES);
-    }
-
-    fn new() -> Self {
-        PlotView::new();
-    }
-}*/
-/*fn add_signal(
-    &mut self,
-    name: &str,
-    flags: SignalFlags,
-    arg_types: &[Type],
-    ret_type: Type
-)*/
-//unsafe extern "C" fn

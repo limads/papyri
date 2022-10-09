@@ -6,9 +6,10 @@ For a copy, see <https://opensource.org/licenses/MIT>.*/
 use serde::{Serialize, Deserialize};
 use std::default::Default;
 use std::fmt;
-use std::collections::HashMap;
 use std::ops::Range;
 use std::str::FromStr;
+use std::cmp::{PartialEq, Eq};
+use std::error::Error;
 
 /*
 // Drawing primitives shared by multiple mappings.
@@ -97,6 +98,7 @@ impl Default for Adjustment {
 
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MappingType {
     Line,
     Scatter,
@@ -122,7 +124,11 @@ impl MappingType {
         }
     }
 
-    /// Returns a default property map for this mapping type. This is the major
+    pub fn like_any(&self, mappings : &[MappingType]) -> bool {
+        mappings.iter().any(|m| *m == *self )
+    }
+    
+    /*/// Returns a default property map for this mapping type. This is the major
     /// reference for the validity of any given plot property. This function
     /// deals with non-data properties.
     pub fn default_hash(&self) -> HashMap<String, String> {
@@ -169,7 +175,7 @@ impl MappingType {
             }
         }
         hash
-    }
+    }*/
 }
 
 /*
@@ -217,6 +223,7 @@ impl DesignBuilder {
 
 }
 
+/// Represents a design definition error propagated to the user.
 #[derive(Debug, thiserror::Error)]
 pub enum DesignError {
 
@@ -261,7 +268,7 @@ impl Default for Design {
             bgcolor : String::from("#ffffff"),
             fgcolor : String::from("#d3d7cf"),
             width : 1,
-            font : String::from("Monospace Regular 12")
+            font : String::from("Monospace Regular 22")
         }
     }
 }
@@ -278,6 +285,37 @@ pub struct Layout {
     pub split : Option<String>
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum LayoutError {
+
+    #[error("'width' should be strictly positive")]
+    Width,
+    
+    #[error("'height' should be strictly positive")]
+    Height,
+    
+    #[error("'hratio' should be in the interval 0.0 - 1.0")]
+    HRatio,
+    
+    #[error("'vratio' should be in the interval 0.0 - 1.0")]
+    VRatio,
+    
+    #[error("Invalid value for 'split'. Expected one of 'unique', 'horizontal', 'vertical', 'threetop', 'threebottom', 'threeleft', 'threeright', 'four'")]
+    Split
+    
+}
+
+const VALID_SPLITS : [&'static str; 8] = [
+    "unique",
+    "horizontal",
+    "vertical",
+    "threetop",
+    "threebottom",
+    "threeleft",
+    "threeright",
+    "four"
+];
+
 impl Layout {
 
     pub fn new() -> Self {
@@ -286,6 +324,22 @@ impl Layout {
 
     pub fn builder() -> LayoutBuilder {
         LayoutBuilder(Layout::default())
+    }
+    
+    pub fn validate(&self) -> Result<(), LayoutError> {
+        if self.width < 0 {
+            Err(LayoutError::Width)
+        } else if self.height < 0 {
+            Err(LayoutError::Height)
+        } else if self.hratio < 0.0 || self.hratio > 1.0 {
+            Err(LayoutError::HRatio)
+        } else if self.vratio < 0.0 || self.vratio > 1.0 {
+            Err(LayoutError::VRatio)
+        } else if self.split.as_ref().map(|s| !(VALID_SPLITS.iter().any(|r| &s[..] == &r[..] )) ).unwrap_or(false) {
+            Err(LayoutError::Split)
+        } else {
+            Ok(())
+        }
     }
 
 }
@@ -336,6 +390,7 @@ impl Default for Layout {
     }
 }
 
+/// Represents a mapping definition error propagated to the user.
 #[derive(Debug, thiserror::Error)]
 pub enum ScaleError {
 
@@ -477,6 +532,87 @@ pub struct Map {
     pub text : Option<Vec<String>>
 }
 
+impl Map {
+
+    // Returns true if the pair has the same set of valid fields.
+    pub fn like(&self, other : &Self) -> bool {
+        self.x.as_ref().xor(other.x.as_ref()).is_none() &&
+        self.y.as_ref().xor(other.y.as_ref()).is_none() &&
+        self.z.as_ref().xor(other.z.as_ref()).is_none() &&
+        self.text.as_ref().xor(other.text.as_ref()).is_none()
+    }
+    
+    pub fn empty_for_line() -> Self {
+        Self {
+            x : Some(Vec::new()),
+            y : Some(Vec::new()),
+            ..Default::default()
+        }
+    }
+    
+    pub fn empty_for_scatter() -> Self {
+        Self {
+            x : Some(Vec::new()),
+            y : Some(Vec::new()),
+            ..Default::default()
+        }
+    }
+    
+    pub fn empty_for_bar() -> Self {
+        Self {
+            x : Some(Vec::new()),
+            ..Default::default()
+        }
+    }
+    
+    pub fn empty_for_interval() -> Self {
+        Self {
+            x : Some(Vec::new()),
+            y : Some(Vec::new()),
+            z : Some(Vec::new()),
+            ..Default::default()
+        }
+    }
+    
+    pub fn empty_for_area() -> Self {
+        Self {
+            x : Some(Vec::new()),
+            y : Some(Vec::new()),
+            z : Some(Vec::new()),
+            ..Default::default()
+        }
+    }
+    
+    pub fn empty_for_label() -> Self {
+        Self {
+            x : Some(Vec::new()),
+            y : Some(Vec::new()),
+            text : Some(Vec::new()),
+            ..Default::default()
+        }
+    }
+    
+    pub fn description(&self) -> String {
+        let mut s = String::from("(");
+        if self.x.is_some() {
+            s += "x,"
+        }
+        if self.y.is_some() {
+            s += "y,"
+        }
+        if self.z.is_some() {
+            s += "z,"
+        }
+        if self.text.is_some() {
+            s += "t,"
+        }
+        s = s.trim_end_matches(",").to_string();
+        s += ")";
+        s
+    }
+    
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Line {
     pub map : Map,
@@ -530,7 +666,7 @@ impl Default for Line {
 
     fn default() -> Self {
         Line {
-            map : Map::default(),
+            map : Map::empty_for_line(),
             width : 1.0,
             spacing : 1.0,
             color : String::from("#000000")
@@ -543,7 +679,7 @@ impl From<Line> for Mapping {
 
     fn from(line : Line) -> Self {
         let Line { map, width, spacing, color, .. } = line;
-        Mapping { kind : String::from("line"), map : Some(map), width : Some(width), spacing : Some(spacing), color : Some(color), ..Default::default() }
+        Mapping { kind : String::from("line"), map : map, width : Some(width), spacing : Some(spacing), color : Some(color), ..Default::default() }
     }
 
 }
@@ -595,8 +731,8 @@ impl Default for Scatter {
 
     fn default() -> Self {
         Scatter {
-            map : Map::default(),
-            radius : 1.0,
+            map : Map::empty_for_scatter(),
+            radius : 10.0,
             color : String::from("#000000")
         }
     }
@@ -607,7 +743,7 @@ impl From<Scatter> for Mapping {
 
     fn from(scatter : Scatter) -> Self {
         let Scatter { map, radius, color, .. } = scatter;
-        Mapping { kind : String::from("scatter"), map : Some(map), radius : Some(radius), color : Some(color), ..Default::default() }
+        Mapping { kind : String::from("scatter"), map : map, radius : Some(radius), color : Some(color), ..Default::default() }
     }
 
 }
@@ -680,7 +816,7 @@ impl Default for Interval {
 
     fn default() -> Self {
         Interval {
-            map : Map::default(),
+            map : Map::empty_for_interval(),
             color : String::from("#000000"),
             width : 1.0,
             spacing : 1.0,
@@ -697,7 +833,7 @@ impl From<Interval> for Mapping {
         let Interval { map, color, width, vertical, limits, .. } = interval;
         Mapping {
             kind : String::from("interval"),
-            map : Some(map),
+            map : map,
             color : Some(color),
             limits : Some(limits),
             vertical : Some(vertical),
@@ -755,9 +891,9 @@ impl Default for Label {
 
     fn default() -> Label {
         Label {
-            map : Map::default(),
+            map : Map::empty_for_label(),
             color : String::from("#000000"),
-            font : String::from("Monospace Regular 12")
+            font : String::from("Monospace Regular 22")
         }
     }
 
@@ -767,7 +903,7 @@ impl From<Label> for Mapping {
 
     fn from(label : Label) -> Self {
         let Label { map, color, font, .. } = label;
-        Mapping { kind : String::from("text"), map : Some(map), color : Some(color), font : Some(font), ..Default::default() }
+        Mapping { kind : String::from("text"), map : map, color : Some(color), font : Some(font), ..Default::default() }
     }
 
 }
@@ -838,7 +974,7 @@ impl Default for Bar {
 
     fn default() -> Bar {
         Bar {
-            map : Map::default(),
+            map : Map::empty_for_bar(),
             color : String::from("#000000"),
             width : 1.0,
             spacing : 1.0,
@@ -856,7 +992,7 @@ impl From<Bar> for Mapping {
         let Bar { map, color, width, spacing, origin, center, vertical, .. } = bar;
         Mapping {
             kind : String::from("bar"),
-            map : Some(map),
+            map : map,
             color : Some(color),
             origin : Some(origin),
             center :  Some(center),
@@ -869,6 +1005,57 @@ impl From<Bar> for Mapping {
 
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Property {
+    Kind,
+    Color,
+    Map,
+    Width,
+    Spacing,
+    Vertical,
+    Font,
+    Radius,
+    Limits,
+    Center,
+    Origin
+}
+
+impl Property {
+
+    pub fn present(&self, m : &MappingType) -> bool {
+        match self {
+            Property::Kind | Property::Color | Property::Map => true,
+            Property::Width | Property::Spacing => *m == MappingType::Line || *m == MappingType::Bar || *m == MappingType::Interval,
+            Property::Vertical => *m == MappingType::Interval || *m == MappingType::Bar,
+            Property::Font => *m == MappingType::Text,
+            Property::Radius => *m == MappingType::Scatter,
+            Property::Limits => *m == MappingType::Interval,
+            Property::Center | Property::Origin => *m == MappingType::Bar
+        }
+    }
+    
+    pub fn absent(&self, m : &MappingType) -> bool {
+        !self.present(m)
+    }
+    
+    pub fn name(&self) -> String {        
+        match self {
+            Self::Kind => format!("kind"),
+            Self::Color => format!("color"),
+            Self::Map => format!("map"),
+            Self::Width => format!("width"),
+            Self::Spacing => format!("spacing"),
+            Self::Vertical => format!("vertical"),
+            Self::Font => format!("font"),
+            Self::Radius => format!("radius"),
+            Self::Limits => format!("limits"),
+            Self::Center => format!("center"),
+            Self::Origin => format!("origin"),
+        }
+    }
+    
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Mapping {
 
@@ -877,7 +1064,7 @@ pub struct Mapping {
 
     // Shared by all mappings
     pub color : Option<String>,
-    pub map : Option<Map>,
+    pub map : Map,
 
     // Shared by line, bar and interval
     pub width : Option<f64>,
@@ -920,18 +1107,72 @@ pub(crate) fn validate_color(s : &str) -> bool {
 
 impl Mapping {
 
-    pub fn has_shared_property(&self) -> bool {
-        self.width.is_some() || self.spacing.is_some()
+    pub fn properties(&self) -> Vec<Property> {
+        let mut props = vec![Property::Kind, Property::Map];
+        if self.color.is_some() {
+            props.push(Property::Color);
+        }
+
+        // Shared by line, bar and interval
+        if self.width.is_some() {
+            props.push(Property::Width);
+        }
+        
+        if self.spacing.is_some() {
+            props.push(Property::Spacing);
+        }
+
+        if self.vertical.is_some() {
+            props.push(Property::Vertical);
+        }
+        
+        if self.font.is_some() {
+            props.push(Property::Font);
+        }
+
+        if self.radius.is_some() {
+            props.push(Property::Radius);
+        }
+
+        if self.limits.is_some() {
+            props.push(Property::Limits);
+        }
+       
+        if self.center.is_some() {
+            props.push(Property::Center);
+        }
+        if self.origin.is_some() {
+            props.push(Property::Origin);
+        }
+        props
+    }
+    
+    // Returns true when this has at least one of the properties shared by the mappig pair.
+    // Returns false otherwise.
+    pub fn has_shared_property(&self, a : MappingType, b : MappingType) -> bool {
+    
+        let mut any_prop = false;
+        
+        let g2 = [MappingType::Bar, MappingType::Interval];
+        if a.like_any(&g2) && b.like_any(&g2) {
+            any_prop = self.vertical.is_some()
+        }
+        
+        let g1 = [MappingType::Line, MappingType::Bar, MappingType::Interval];
+        if a.like_any(&g1) && b.like_any(&g1) {
+            any_prop = any_prop || self.width.is_some() || self.spacing.is_some();
+        }
+        
+        any_prop
     }
 
     pub fn has_specific_property(&self, kind : MappingType) -> bool {
         match kind {
             MappingType::Bar => {
-                self.center.is_some() || self.vertical.is_some() ||
-                    self.width.is_some() || self.spacing.is_some() || self.origin.is_some()
+                self.center.is_some() || self.origin.is_some()
             },
             MappingType::Interval => {
-                self.limits.is_some() || self.vertical.is_some()
+                self.limits.is_some()
             },
             MappingType::Text => {
                 self.font.is_some()
@@ -944,25 +1185,30 @@ impl Mapping {
     }
 
     pub fn validate(&self) -> Result<(), MappingError> {
-        let ty = MappingType::from_str(&self.kind).ok_or(MappingError::InvalidKind)?;
-        if let Some(map) = &self.map {
-            let n = map.x.as_ref().map(|data| data.len() ).unwrap_or(0);
-            if let Some(y) = &map.y {
-                if y.len() != n {
-                    Err(MappingError::DataLength)?;
-                }
-            }
-            if let Some(z) = &map.z {
-                if z.len() != n {
-                    Err(MappingError::DataLength)?;
-                }
-            }
-            if let Some(t) = &map.text {
-                if t.len() != n {
-                    Err(MappingError::DataLength)?;
-                }
+        let ty = MappingType::from_str(&self.kind)
+            .ok_or(MappingError::InvalidKind(self.kind.to_string()))?;
+
+        if self.map.x.is_none() {
+            Err(MappingError::MissingColumn)?;        
+        }
+
+        let nx = self.map.x.as_ref().map(|data| data.len() ).unwrap_or(0);
+        if let Some(y) = &self.map.y {
+            if y.len() != nx {
+                Err(MappingError::DataLength{expected : nx, informed : y.len() , column : "y" })?;
             }
         }
+        if let Some(z) = &self.map.z {
+            if z.len() != nx {
+                Err(MappingError::DataLength{expected : nx, informed : z.len(), column : "z" })?;
+            }
+        }
+        if let Some(t) = &self.map.text {
+            if t.len() != nx {
+                Err(MappingError::DataLength{expected : nx, informed : t.len(), column : "t" })?;
+            }
+        }
+        
         if let Some(color) = &self.color {
             if !validate_color(&color[..]) {
                 Err(MappingError::InvalidColor)?;
@@ -970,48 +1216,81 @@ impl Mapping {
         }
         match ty {
             MappingType::Line => {
-                if self.has_specific_property(MappingType::Scatter) || self.has_specific_property(MappingType::Text) ||
-                self.has_specific_property(MappingType::Bar) || self.has_specific_property(MappingType::Interval) {
-                    Err(MappingError::InvalidProperty)?;
+                
+                let empty = Map::empty_for_line();
+                if !self.map.like(&empty) {
+                    return Err(MappingError::DataMapping { expected : empty.description(), informed : self.map.description() });
+                }
+                
+                for pr in self.properties() {
+                    if pr.absent(&MappingType::Line) {
+                        return Err(MappingError::InvalidProperty(pr.name()));
+                    }
                 }
             },
             MappingType::Scatter => {
-                if self.has_specific_property(MappingType::Text) || self.has_specific_property(MappingType::Bar) ||
-                self.has_specific_property(MappingType::Interval) {
-                    Err(MappingError::InvalidProperty)?;
+            
+                let empty = Map::empty_for_scatter();
+                if !self.map.like(&empty) {
+                    return Err(MappingError::DataMapping { expected : empty.description(), informed : self.map.description() });
                 }
-                if self.has_shared_property() {
-                    Err(MappingError::InvalidProperty)?;
+                
+                for pr in self.properties() {
+                    if pr.absent(&MappingType::Scatter) {
+                        return Err(MappingError::InvalidProperty(pr.name()));
+                    }
                 }
             },
             MappingType::Text => {
-                if self.has_specific_property(MappingType::Scatter) || self.has_specific_property(MappingType::Bar) ||
-                self.has_specific_property(MappingType::Interval) {
-                    Err(MappingError::InvalidProperty)?;
+            
+                let empty = Map::empty_for_label();
+                if !self.map.like(&empty) {
+                    return Err(MappingError::DataMapping { expected : empty.description(), informed : self.map.description() });
                 }
-                if self.has_shared_property() {
-                    Err(MappingError::InvalidProperty)?;
+                
+                for pr in self.properties() {
+                    if pr.absent(&MappingType::Text) {
+                        return Err(MappingError::InvalidProperty(pr.name()));
+                    }
                 }
             },
             MappingType::Area => {
-                if self.has_specific_property(MappingType::Scatter) || self.has_specific_property(MappingType::Text) ||
-                self.has_specific_property(MappingType::Bar) || self.has_specific_property(MappingType::Interval) {
-                    Err(MappingError::InvalidProperty)?;
+            
+                let empty = Map::empty_for_area();
+                if !self.map.like(&empty) {
+                    return Err(MappingError::DataMapping { expected : empty.description(), informed : self.map.description() });
                 }
-                if self.has_shared_property() {
-                    Err(MappingError::InvalidProperty)?;
+                
+                for pr in self.properties() {
+                    if pr.absent(&MappingType::Area) {
+                        return Err(MappingError::InvalidProperty(pr.name()));
+                    }
                 }
             },
             MappingType::Interval => {
-                if self.has_specific_property(MappingType::Scatter) || self.has_specific_property(MappingType::Text) ||
-                self.has_specific_property(MappingType::Bar) {
-                    Err(MappingError::InvalidProperty)?;
+            
+                let empty = Map::empty_for_interval();
+                if !self.map.like(&empty) {
+                    return Err(MappingError::DataMapping { expected : empty.description(), informed : self.map.description() });
+                }
+                
+                for pr in self.properties() {
+                    if pr.absent(&MappingType::Interval) {
+                        return Err(MappingError::InvalidProperty(pr.name()));
+                    }
                 }
             },
             MappingType::Bar => {
-                if self.has_specific_property(MappingType::Scatter) || self.has_specific_property(MappingType::Text) ||
-                self.has_specific_property(MappingType::Interval) {
-                    Err(MappingError::InvalidProperty)?;
+            
+                let empty = Map::empty_for_bar();
+                if !self.map.like(&empty) {
+                    return Err(MappingError::DataMapping { expected : empty.description(), informed : self.map.description() });
+                }
+                
+                for pr in self.properties() {
+                    if pr.absent(&MappingType::Bar) {
+                        return Err(MappingError::InvalidProperty(pr.name()));
+                    }
                 }
             }
         }
@@ -1020,17 +1299,24 @@ impl Mapping {
 
 }
 
+/// Represents a mapping definition error propagated to the user.
 #[derive(thiserror::Error, Debug)]
 pub enum MappingError {
 
-    #[error("Invalid kind")]
-    InvalidKind,
+    #[error("Missing first mapping data column (x)")]
+    MissingColumn,
+    
+    #[error("Invalid mapping kind: {0} (expected line, scatter, interval, area, label or bar)")]
+    InvalidKind(String),
 
-    #[error("Data length")]
-    DataLength,
+    #[error("Data length mismatch (expected {expected}, but informed {informed} for {column})")]
+    DataLength { column : &'static str, expected : usize, informed : usize},
+    
+    #[error("Invalid data mapping (required {expected} but informed {informed})")]
+    DataMapping { expected : String, informed : String },
 
-    #[error("Invalid property")]
-    InvalidProperty,
+    #[error("Invalid mapping property: {0}")]
+    InvalidProperty(String),
 
     #[error("Invalid RGB/RGBA color")]
     InvalidColor
@@ -1060,6 +1346,21 @@ impl Plot {
 
     pub fn builder() -> PlotBuilder {
         PlotBuilder(Self::default())
+    }
+    
+    pub fn validate(&self) -> Result<(), Box<dyn Error>> {
+        if let Some(d) = &self.design {
+            d.validate()?;
+        }
+        if let Some(l) = &self.layout {
+            l.validate()?;
+        }
+        self.x.validate()?;
+        self.y.validate()?;
+        for m in &self.mappings {
+            m.validate()?;
+        }
+        Ok(())
     }
 
 }
@@ -1125,8 +1426,6 @@ impl PlotBuilder {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Panel {
 
-    // TODO add this field and derive deserialize here manually.
-    // pub elements : Vec<Either<Box<Panel>, Plot>>,
     pub plots : Vec<Plot>,
 
     pub design : Option<Design>,
@@ -1156,6 +1455,16 @@ impl Panel {
     pub fn builder() -> PanelBuilder {
         PanelBuilder(Panel::default())
     }
+    
+    pub fn validate(&self) -> Result<(), Box<dyn Error>> {
+        self.design.as_ref().map(|d| d.validate() ).unwrap_or(Ok(()))?;
+        self.layout.as_ref().map(|l| l.validate() ).unwrap_or(Ok(()))?;
+        for pl in &self.plots {
+            pl.validate()?;
+        }
+        Ok(())
+    }
+    
 
 }
 

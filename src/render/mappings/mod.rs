@@ -15,9 +15,7 @@ use std::default::Default;
 use std::mem;
 use std::error::Error;
 use std::fmt::Debug;
-
 use crate::render::PlotError;
-use crate::model::MappingType;
 
 pub mod area;
 
@@ -34,55 +32,47 @@ pub mod text;
 pub mod interval;
 
 fn update_single_data_from_json(x : &mut Vec<f64>, mut rep : crate::model::Mapping) {
-    if let Some(ref mut map) = rep.map {
-        if let Some(new_x) = mem::take(&mut map.x) {
-            *x = new_x;
-        }
+    if let Some(new_x) = mem::take(&mut rep.map.x) {
+        *x = new_x;
     }
 }
 
 fn update_data_pair_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, mut rep : crate::model::Mapping) {
-    if let Some(ref mut map) = rep.map {
-        if let Some(new_x) = mem::take(&mut map.x) {
-            *x = new_x;
-        }
-        if let Some(new_y) = mem::take(&mut map.y) {
-            *y = new_y;
-        }
+    if let Some(new_x) = mem::take(&mut rep.map.x) {
+        *x = new_x;
+    }
+    if let Some(new_y) = mem::take(&mut rep.map.y) {
+        *y = new_y;
     }
 }
 
 fn update_data_triplet_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, z : &mut Vec<f64>, mut rep : crate::model::Mapping) {
-    if let Some(ref mut map) = rep.map {
-        if let Some(new_x) = mem::take(&mut map.x) {
-            *x = new_x;
-        } else {
-            println!("Missing x");
-        }
-        if let Some(new_y) = mem::take(&mut map.y) {
-            *y = new_y;
-        } else {
-            println!("Missing y");
-        }
-        if let Some(new_z) = mem::take(&mut map.z) {
-            *z = new_z;
-        } else {
-            println!("Missing z");
-        }
+    if let Some(new_x) = mem::take(&mut rep.map.x) {
+        *x = new_x;
+    } else {
+        println!("Missing x");
+    }
+    if let Some(new_y) = mem::take(&mut rep.map.y) {
+        *y = new_y;
+    } else {
+        println!("Missing y");
+    }
+    if let Some(new_z) = mem::take(&mut rep.map.z) {
+        *z = new_z;
+    } else {
+        println!("Missing z");
     }
 }
 
 fn update_textual_data_from_json(x : &mut Vec<f64>, y : &mut Vec<f64>, z : &mut Vec<String>, mut rep : crate::model::Mapping) {
-    if let Some(ref mut map) = rep.map {
-        if let Some(new_x) = mem::take(&mut map.x) {
-            *x = new_x;
-        }
-        if let Some(new_y) = mem::take(&mut map.y) {
-            *y = new_y;
-        }
-        if let Some(new_text) = mem::take(&mut map.text) {
-            *z = new_text;
-        }
+    if let Some(new_x) = mem::take(&mut rep.map.x) {
+        *x = new_x;
+    }
+    if let Some(new_y) = mem::take(&mut rep.map.y) {
+        *y = new_y;
+    }
+    if let Some(new_text) = mem::take(&mut rep.map.text) {
+        *z = new_text;
     }
 }
 
@@ -156,7 +146,7 @@ where
 
     // fn update_layout(&mut self, node : &Node) -> Result<(), String>;
 
-    fn properties(&self) -> HashMap<String, String>;
+    // fn properties(&self) -> HashMap<String, String>;
 
     fn mapping_type(&self) -> String;
 

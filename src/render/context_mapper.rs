@@ -5,7 +5,14 @@ For a copy, see <https://opensource.org/licenses/MIT>.*/
 
 use std::ops::Add;
 
+pub const REL_X_OFFSET : f64 = 0.12; // 0.1
 
+pub const REL_Y_OFFSET : f64 = 0.1;
+
+// This should be 1.0 - 2*REL_X_OFFSET
+pub const REL_WIDTH : f64 = 0.76;
+
+pub const REL_HEIGHT : f64 = 0.8;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Coord2D {
@@ -77,10 +84,6 @@ impl Default for ContextMapper {
 
 impl ContextMapper {
 
-    //fn new() -> ContextMapper {
-    //    ContextMapper{..Default::default()}
-    //}
-
     pub fn new(
         xmin : f64, xmax : f64, ymin : f64, ymax : f64,
         xlog : bool, ylog : bool, xinv : bool, yinv : bool)
@@ -139,25 +142,22 @@ impl ContextMapper {
         // but we sould increase it in either or both the horizontal
         // or vertical dimension if they are shared by more than one plot
         // (to leave enough room for labels under the minimum aspect ratio).
-        let padw = 0.1*(self.w as f64);
-        let padh = 0.1*(self.h as f64);
+        let padw = REL_X_OFFSET*(self.w as f64);
+        let padh = REL_Y_OFFSET*(self.h as f64);
         let dataw = (self.w as f64) - 2.0*padw;
         let datah = (self.h as f64) - 2.0*padh;
-
         let xprop = match (self.xlog, self.xinv) {
             (false, false) => (x - self.xmin) / self.xext,
             (false, true)  => (self.xmax - x) / self.xext,
             (true, false)  => (x.log10() - self.xmin.log10()) / self.xext,
             (true, true)   => (self.xmax.log10() - x.log10()) / self.xext
         };
-        let yprop = 1.0 - match (self.ylog, self.yinv) { // Here
+        let yprop = 1.0 - match (self.ylog, self.yinv) { 
             (false, false) => (y - self.ymin) / self.yext,
             (false, true)  => (self.ymax - y) / self.yext,
             (true, false)  => (y.log10() - self.ymin.log10()) / self.yext,
             (true, true)   => (self.ymax.log10() - y.log10()) / self.yext
         };
-
-        //println!("{:?} {:?} {:?} {:?}", self.xlog, self.xinv, self.ylog,self.yinv);
 
         Coord2D::new(padw + dataw*xprop, padh + datah*yprop)
     }
@@ -165,14 +165,6 @@ impl ContextMapper {
     pub fn check_bounds(&self, x : f64, y : f64) -> bool {
         let x_ok = x >= self.xmin && x <= self.xmax;
         let y_ok = y >= self.ymin && y <= self.ymax;
-        /*match self.xinv {
-            false => x >= self.xmin && x <= self.xmax,
-            true => x <= self.xmin && x >= self.xmax
-        };*/
-        /*let y_ok = match self.yinv {
-            false => y >= self.ymin && y <= self.ymax,
-            true => y <= self.ymin && y >= self.ymax
-        };*/
         x_ok && y_ok
     }
 

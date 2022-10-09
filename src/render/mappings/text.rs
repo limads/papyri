@@ -3,15 +3,10 @@
 This work is licensed under the terms of the MIT license.  
 For a copy, see <https://opensource.org/licenses/MIT>.*/
 
-// use libxml::tree::node::Node;
 use gdk4::RGBA;
 use cairo::Context;
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
-// use std::f64::consts::PI;
-// use super::utils;
-// use super::super::context_mapper::Coord2D;
-// use cairo::ScaledFont;
 use super::text::{FontData, draw_label};
 use super::*;
 use std::cmp::*;
@@ -72,28 +67,6 @@ impl TextMapping {
         text_m
     }
 
-    /*pub fn new(node : &Node) -> Result<Self,String> {
-        let x = Vec::<f64>::new();
-        let y = Vec::<f64>::new();
-        let text = Vec::<String>::new();
-        let color = gdk::RGBA{
-            red:0.0,
-            green:0.0,
-            blue:0.0,
-            alpha : 0.0
-        };
-        let font = FontData::create_standard_font();
-        let col_names = [
-            String::from("None"),
-            String::from("None"),
-            String::from("None")
-        ];
-        let source = String::new();
-        let mut mapping = TextMapping{ x, y, text, font, color, col_names, source};
-        mapping.update_layout(node)?;
-        Ok(mapping)
-    }*/
-
     // Calls to update_data(.) can call this
     // function to update the text before the
     // call to draw(.).
@@ -140,8 +113,7 @@ impl Mapping for TextMapping {
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
         ctx.save()?;
         if !((self.x.len() == self.y.len()) && (self.x.len() == self.text.len())) {
-            // println!("Invalid dimensions at textual mapping");
-            // println!("x: {}; y: {}; t: {}", self.x.len(), self.y.len(), self.text.len());
+            // eprintln!("Invalid dimensions at textual mapping");
         }
         ctx.set_source_rgb(
             self.color.red().into(),
@@ -163,7 +135,7 @@ impl Mapping for TextMapping {
                     None
                 )?;
             } else {
-                // println!("Out of bounds mapping");
+                // eprintln!("Out of bounds mapping");
             }
         }
         ctx.restore()?;
@@ -181,51 +153,6 @@ impl Mapping for TextMapping {
         } else {
             // println!("Text data vector is empty");
         }
-    }
-
-    /*fn update_layout(&mut self, node : &Node) -> Result<(), String> {
-        let props = utils::children_as_hash(node, "property");
-        self.color = props.get("color")
-            .ok_or(format!("color property not found"))?
-            .parse()
-            .map_err(|_| format!("Unable to parse color property"))?;
-        self.font = FontData::new_from_string(&props["font"]);
-        self.col_names[0] = props.get("x")
-            .ok_or(format!("x property not found"))?
-            .clone();
-        self.col_names[1] = props.get("y")
-            .ok_or(format!("y property not found"))?
-            .clone();
-        self.col_names[2] = props.get("text")
-            .ok_or(format!("text property not found"))?
-            .clone();
-        self.source = props.get("source")
-            .ok_or(format!("Source property not found"))?
-            .clone();
-        Ok(())
-    }*/
-
-    fn properties(&self) -> HashMap<String, String> {
-        let mut properties = MappingType::Text.default_hash();
-        if let Some(e) = properties.get_mut("color") {
-            *e = self.color.to_string();
-        }
-        if let Some(e) = properties.get_mut("font") {
-            *e = self.font.description();
-        }
-        if let Some(e) = properties.get_mut("x") {
-            *e = self.col_names[0].clone();
-        }
-        if let Some(e) = properties.get_mut("y") {
-            *e = self.col_names[1].clone();
-        }
-        if let Some(e) = properties.get_mut("text") {
-            *e = self.col_names[2].clone();
-        }
-        if let Some(e) = properties.get_mut("source") {
-            *e = self.source.clone();
-        }
-        properties
     }
 
     fn mapping_type(&self) -> String {

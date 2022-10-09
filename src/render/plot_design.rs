@@ -4,8 +4,6 @@ This work is licensed under the terms of the MIT license.
 For a copy, see <https://opensource.org/licenses/MIT>.*/
 
 use gdk4::RGBA;
-// use libxml::tree::node::Node;
-// use super::utils;
 use std::error::Error;
 use super::text;
 use std::collections::HashMap;
@@ -28,7 +26,7 @@ impl Default for PlotDesign {
             bg_color : RGBA::from_str("#ffffff").unwrap(),
             grid_color : RGBA::from_str("#d3d7cf").unwrap(),
             grid_width : 1,
-            font : FontData::new_from_string("Monospace Regular 12")
+            font : FontData::new_from_string("Monospace Regular 22")
         }
     }
 
@@ -49,29 +47,6 @@ impl PlotDesign {
         Ok(design)
     }
 
-    /*pub fn new( /*node : &Node*/ ) -> Result<PlotDesign, Box<dyn Error>> {
-        // let design_props = utils::children_as_hash(node,"property");
-        // println!("Design = {:?}", design_props);
-        let standard_color = RGBA{red:0.0,green:0.0,blue:0.0,alpha:0.0};
-        let bg_color = match design_props["bg_color"].parse() {
-            Ok(c) => c,
-            Err(_) => standard_color
-         };
-        let grid_color = match design_props["grid_color"].parse() {
-            Ok(c) => c,
-            Err(_) => standard_color
-        };
-        let grid_width : i32 = design_props["grid_width"].parse()?;
-        let font = text::FontData::new_from_string(&design_props["font"]);
-        let design = PlotDesign{
-            bg_color,
-            grid_color,
-            grid_width,
-            font
-        };
-        Ok(design)
-    }*/
-
     pub fn description(&self) -> HashMap<String, String> {
         let mut desc = HashMap::new();
         desc.insert("bg_color".into(), self.bg_color.to_string());
@@ -81,10 +56,5 @@ impl PlotDesign {
         desc
     }
 
-    // Font pattern is assumed to be like
-    // Monospace Regular 12
-    /*fn update_colors(&self, bg : String, grid : String) {
-
-    }*/
 }
 

@@ -12,7 +12,6 @@ use std::cmp::*;
 use std::default::Default;
 use super::super::{MappingProperty, IntervalProperty};
 use std::borrow::Borrow;
-use crate::model::MappingType;
 
 #[derive(Debug, Clone)]
 pub struct IntervalMapping {
@@ -86,31 +85,6 @@ impl IntervalMapping {
         intv
     }
 
-    /*pub fn new(node : &Node) -> Result<Self, String> {
-        let color = gdk::RGBA{
-            red:0.0,
-            green:0.0,
-            blue:0.0,
-            alpha : 0.0
-        };
-        let width = 1.0;
-        let dash_n = 1;
-        let x = Vec::<f64>::new();
-        let ymin = Vec::<f64>::new();
-        let ymax = Vec::<f64>::new();
-        let col_names = [
-            String::from("None"),
-            String::from("None"),
-            String::from("None")
-        ];
-        let source = String::new();
-        let lim_sz = 1.0;
-        let vertical = true;
-        let mut mapping = IntervalMapping{color, x, ymin, ymax, width, dash_n, col_names, source, lim_sz, vertical};
-        mapping.update_layout(node)?;
-        Ok(mapping)
-    }*/
-
     fn build_dash(n : i32) -> Vec<f64> {
         let dash_sz = 10.0 / (n as f64);
         let mut dashes = Vec::<f64>::new();
@@ -148,7 +122,6 @@ impl Mapping for IntervalMapping {
     }
 
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
-        //println!("{:?}", self);
         if self.x.len() < 1 || self.ymin.len() < 1 || self.ymax.len() < 1 {
             return Ok(());
         }
@@ -235,66 +208,11 @@ impl Mapping for IntervalMapping {
             self.vertical = vert;
         }
 
-        // println!("Mapping json rep: {:?}", rep);
-
         super::update_data_triplet_from_json(&mut self.x, &mut self.ymin, &mut self.ymax, rep);
-        // TODO check properties of other mappings are None.
     }
 
     fn update_extra_data(&mut self, _values : Vec<Vec<String>>) {
-        // println!("Mapping has no extra data");
-    }
 
-    /*fn update_layout(&mut self, node : &Node) -> Result<(), String> {
-        let props = utils::children_as_hash(node, "property");
-        self.color = props.get("color")
-            .ok_or(format!("color property not found"))?
-            .parse()
-            .map_err(|_| format!("Unable to parse color property"))?;
-        self.width = props.get("width")
-            .ok_or(format!("width property not found"))?
-            .parse()
-            .map_err(|_| format!("Unable to parse width property"))?;
-        self.dash_n = props.get("dash")
-            .ok_or(format!("dash property not found"))?
-            .parse()
-            .map_err(|_| format!("Unable to parse dash property"))?;
-        self.col_names[0] = props.get("x")
-            .ok_or(format!("x property not found"))?
-            .clone();
-        self.col_names[1] = props.get("y")
-            .ok_or(format!("y property not found"))?
-            .clone();
-        self.source = props.get("source")
-            .ok_or(format!("Source property not found"))?
-            .clone();
-        Ok(())
-    }*/
-
-    fn properties(&self) -> HashMap<String, String> {
-        let mut properties = MappingType::Line.default_hash();
-        if let Some(e) = properties.get_mut("color") {
-            *e = self.color.to_string();
-        }
-        if let Some(e) = properties.get_mut("width") {
-            *e = self.width.to_string();
-        }
-        if let Some(e) = properties.get_mut("dash"){
-            *e = self.dash_n.to_string();
-        }
-        if let Some(e) = properties.get_mut("x") {
-            *e = self.col_names[0].clone();
-        }
-        if let Some(e) = properties.get_mut("ymin") {
-            *e = self.col_names[1].clone();
-        }
-        if let Some(e) = properties.get_mut("ymax") {
-            *e = self.col_names[1].clone();
-        }
-        if let Some(e) = properties.get_mut("source") {
-            *e = self.source.clone();
-        }
-        properties
     }
 
     fn mapping_type(&self) -> String {
@@ -311,40 +229,19 @@ impl Mapping for IntervalMapping {
     }
 
     fn get_ordered_col_names(&self) -> Vec<(String, String)> {
-        /*vec![
-            (String::from("x"), self.get_col_name("x")),
-            (String::from("ymin"), self.get_col_name("ymin"))
-            (String::from("ymax"), self.get_col_name("ymax"))
-        ]*/
-        unimplemented!()
+        Vec::new()
     }
 
     fn get_hash_col_names(&self) -> HashMap<String, String> {
-        /*let mut cols = HashMap::new();
-        cols.insert("x".into(), self.col_names[0].clone());
-        cols.insert("y".into(), self.col_names[1].clone());
-        cols*/
-        unimplemented!()
+        HashMap::new()
     }
 
     fn set_col_name(&mut self, _col : &str, _name : &str) {
-        /*match col {
-            "x" => { self.col_names[0] = name.into(); },
-            "y" => { self.col_names[1] = name.into(); },
-            _ => { }
-        }*/
-        unimplemented!()
+    
     }
 
     fn set_col_names(&mut self, _cols : Vec<String>) -> Result<(), &'static str> {
-        /*if cols.len() != 2 {
-            Err("Wrong number of columns.")
-        } else {
-            self.set_col_name("x", &cols[0]);
-            self.set_col_name("y", &cols[1]);
-            Ok(())
-        }*/
-        unimplemented!()
+        Ok(())    
     }
 
     fn data_limits(&self) -> Option<((f64, f64), (f64, f64))> {

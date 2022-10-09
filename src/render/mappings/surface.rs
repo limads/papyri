@@ -3,18 +3,15 @@
 This work is licensed under the terms of the MIT license.  
 For a copy, see <https://opensource.org/licenses/MIT>.*/
 
-// use libxml::tree::node::Node;
 use gdk4::RGBA;
 use cairo::{Context, MeshCorner};
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
-// use super::utils;
 use super::super::context_mapper::Coord2D;
 use super::*;
 use cairo::Mesh;
 use std::cmp::*;
 use super::super::MappingProperty;
-use crate::model::MappingType;
 
 #[derive(Clone, Debug)]
 pub struct SurfaceMapping {
@@ -68,45 +65,6 @@ impl SurfaceMapping {
         surface.update_data(vec![x, y, z]);
         surface
     }
-
-    /*pub fn new(node : &Node) -> Result<Self, String> {
-        let color = gdk::RGBA{
-            red:0.0,
-            green:0.0,
-            blue:0.0,
-            alpha : 1.0
-        };
-        let color_final = gdk::RGBA{
-            red:1.0,
-            green:1.0,
-            blue:1.0,
-            alpha : 1.0
-        };
-        let x = Vec::<f64>::new();
-        let y = x.clone();
-        let z = x.clone();
-        let z_lims = (0.0, 1.0);
-        let col_names = [
-            String::from("None"),
-            String::from("None"),
-            String::from("None")
-        ];
-        // let interp_task = None;
-        let source = String::new();
-        let mut mapping = SurfaceMapping{
-            color,
-            color_final,
-            x,
-            y,
-            z,
-            col_names,
-            z_lims,
-            // _interp_task : interp_task,
-            source
-        };
-        mapping.update_layout(node)?;
-        Ok(mapping)
-    }*/
 
     fn create_uniform_coords(mapper : &ContextMapper, n : usize) -> Vec<CoordPatch> {
         let (x_ext, y_ext) = mapper.coord_extensions();
@@ -359,7 +317,7 @@ impl Mapping for SurfaceMapping {
         Ok(())
     }*/
 
-    fn properties(&self) -> HashMap<String, String> {
+    /*fn properties(&self) -> HashMap<String, String> {
         let mut properties = MappingType::Surface.default_hash();
         if let Some(e) = properties.get_mut("color") {
             *e = self.color.to_string();
@@ -389,7 +347,7 @@ impl Mapping for SurfaceMapping {
             *e = self.source.clone();
         }
         properties
-    }
+    }*/
 
     fn mapping_type(&self) -> String {
         "surface".into()

@@ -3,22 +3,14 @@
 This work is licensed under the terms of the MIT license.  
 For a copy, see <https://opensource.org/licenses/MIT>.*/
 
-// use libxml::tree::node::Node;
 use gdk4::RGBA;
 use cairo::Context;
 use super::super::context_mapper::ContextMapper;
 use std::collections::HashMap;
-// use std::f64::consts::PI;
-// use super::utils;
-// use super::super::context_mapper::Coord2D;
-// use cairo::ScaledFont;
-// use super::super::text::{FontData, draw_label};
 use super::*;
-//use crate::mappings::other::Mapping;
 use std::cmp::*;
 use super::super::MappingProperty;
 use std::borrow::Borrow;
-use crate::model::MappingType;
 
 #[derive(Debug, Clone)]
 pub struct AreaMapping {
@@ -64,27 +56,6 @@ impl AreaMapping {
         area
     }
 
-    /*pub fn new(node : &Node) -> Result<Self, String> {
-        let x = Vec::<f64>::new();
-        let ymin = Vec::<f64>::new();
-        let ymax = Vec::<f64>::new();
-        let color = gdk::RGBA{
-            red:0.0,
-            green:0.0,
-            blue:0.0,
-            alpha : 1.0
-        };
-        let col_names = [
-            String::from("None"),
-            String::from("None"),
-            String::from("None")
-        ];
-        let source = String::new();
-        let mut mapping = AreaMapping{ x, ymin, ymax, color, col_names, source };
-        mapping.update_layout(node)?;
-        Ok(mapping)
-    }*/
-
     pub fn draw_bound<'a>(
         pts : impl Iterator<Item = ((&'a f64, &'a f64), (&'a f64, &'a f64))>,
         mapper : &ContextMapper,
@@ -96,23 +67,14 @@ impl AreaMapping {
             if bounds_ok {
                 let _from = mapper.map(*x0, *y0);
                 let to   = mapper.map(*x1, *y1);
-                // println!("{:?}", (from, to));
-                // ctx.move_to(from.x, from.y);
                 ctx.line_to(to.x, to.y);
-                //ctx.stroke();
             } else {
-                //println!("Out of bounds mapping");
+                // eprintln!("Out of bounds mapping");
             }
         }
     }
 
 }
-
-/*pub fn get_first_point(
-    zip_xy : &mut dyn Iterator<Item = (f64, f64)>
-) -> Option<(f64, f64)> {
-
-}*/
 
 impl Mapping for AreaMapping {
 
@@ -126,20 +88,15 @@ impl Mapping for AreaMapping {
         }
     }
 
-    // Mapping-specific impl.
-    // fn new(node : Node&) -> Self;
-
     fn clone_boxed(&self) -> Box<dyn Mapping> {
         Box::new(self.clone())
     }
 
-    fn update_from_json(&mut self, _rep : crate::model::Mapping) {
-        // if let Some(ymin) = rep.ymin {
-        // }
-        // if let Some(ymax) = rep.ymax  {
-        // }
-        // TODO check properties of other mappings are None.
-        unimplemented!()
+    fn update_from_json(&mut self, rep : crate::model::Mapping) {
+        if let Some(color) = rep.color.clone() {
+            self.color = color.parse().unwrap();
+        }
+        super::update_data_triplet_from_json(&mut self.x, &mut self.ymin, &mut self.ymax, rep);
     }
 
     // Mapping-specific impl.
@@ -158,15 +115,12 @@ impl Mapping for AreaMapping {
         }
         let pt0 = mapper.map(self.x[0], self.ymin[0]);
         ctx.move_to(pt0.x, pt0.y);
-        //println!("Received for drawing {:?} {:?}", self.x, self.y);
         let zip_xy0 = self.x.iter().zip(self.ymin.iter());
         let zip_xy1 = self.x.iter().skip(1).zip(self.ymin.iter().skip(1));
         AreaMapping::draw_bound(zip_xy0.zip(zip_xy1), mapper, ctx);
         match (self.x.last(), self.ymin.last(), self.ymax.last()) {
             (Some(x), Some(_ymin), Some(ymax)) => {
-                // let from = mapper.map(*x, *ymin);
                 let to = mapper.map(*x, *ymax);
-                //ctx.move_to(from.x, from.y);
                 ctx.line_to(to.x, to.y);
             },
             _ => {
@@ -181,7 +135,6 @@ impl Mapping for AreaMapping {
         let pt = mapper.map(self.x[0], self.ymin[0]);
         ctx.line_to(pt.x, pt.y);
         ctx.close_path();
-        //ctx.fill_preserve();
         ctx.fill()?;
         ctx.restore()?;
         Ok(())
@@ -192,54 +145,6 @@ impl Mapping for AreaMapping {
         self.x = values[0].clone();
         self.ymin = values[1].clone();
         self.ymax = values[2].clone();
-    }
-
-    /*fn update_layout(&mut self, node : &Node) -> Result<(), String> {
-        let props = utils::children_as_hash(node, "property");
-        self.color = props.get("color")
-            .ok_or(format!("Color property not found"))?
-            .parse()
-            .map_err(|_| format!("Unable to parse opacity property"))?;
-        self.color.alpha = props.get("opacity")
-            .ok_or(format!("Color opacity not found"))?
-            .parse()
-            .map_err(|_| format!("Unable to parse opacity property"))?;
-        self.col_names[0] = props.get("x")
-            .ok_or(format!("x property not found"))?
-            .clone();
-        self.col_names[1] = props.get("y")
-            .ok_or(format!("y property not found"))?
-            .clone();
-        self.col_names[2] = props.get("ymax")
-            .ok_or(format!("ymax opacity not found"))?
-            .clone();
-        self.source = props.get("source")
-            .ok_or(format!("Source property not found"))?
-            .clone();
-        Ok(())
-    }*/
-
-    fn properties(&self) -> HashMap<String, String> {
-        let mut properties = MappingType::Area.default_hash();
-        if let Some(e) = properties.get_mut("color") {
-            *e = self.color.to_string();
-        }
-        if let Some(e) = properties.get_mut("opacity") {
-            *e = self.color.alpha().to_string();
-        }
-        if let Some(e) = properties.get_mut("x") {
-            *e = self.col_names[0].clone();
-        }
-        if let Some(e) = properties.get_mut("y") {
-            *e = self.col_names[1].clone();
-        }
-        if let Some(e) = properties.get_mut("ymax") {
-            *e = self.col_names[2].clone();
-        }
-        if let Some(e) = properties.get_mut("source") {
-            *e = self.source.clone();
-        }
-        properties
     }
 
     fn mapping_type(&self) -> String {
@@ -281,7 +186,7 @@ impl Mapping for AreaMapping {
     }
 
     fn update_extra_data(&mut self, _values : Vec<Vec<String>>) {
-        // println!("Mapping has no extra data");
+    
     }
 
     fn set_col_names(&mut self, cols : Vec<String>) -> Result<(), &'static str> {

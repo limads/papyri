@@ -11,9 +11,7 @@ use super::*;
 use std::cmp::*;
 use std::default::Default;
 use super::super::{MappingProperty, LineProperty};
-
 use std::borrow::Borrow;
-use crate::model::MappingType;
 
 #[derive(Debug, Clone)]
 pub struct LineMapping {
@@ -71,27 +69,6 @@ impl LineMapping {
         line
     }
 
-    /*pub fn new(node : &Node) -> Result<Self, String> {
-        let color = gdk::RGBA{
-            red:0.0,
-            green:0.0,
-            blue:0.0,
-            alpha : 0.0
-        };
-        let width = 1.0;
-        let dash_n = 1;
-        let x = Vec::<f64>::new();
-        let y = Vec::<f64>::new();
-        let col_names = [
-            String::from("None"),
-            String::from("None")
-        ];
-        let source = String::new();
-        let mut mapping = LineMapping{color, x, y, width, dash_n, col_names, source};
-        mapping.update_layout(node)?;
-        Ok(mapping)
-    }*/
-
     fn build_dash(n : i32) -> Vec<f64> {
         let dash_sz = 10.0 / (n as f64);
         let mut dashes = Vec::<f64>::new();
@@ -139,30 +116,17 @@ impl Mapping for LineMapping {
         ctx.set_line_width(self.width);
         let dashes = LineMapping::build_dash(self.dash_n);
         ctx.set_dash(&dashes[..], 0.0);
-        //println!("Received for drawing {:?} {:?}", self.x, self.y);
         let zip_xy = self.x[1..].iter().zip(self.y[1..].iter());
-        /*let (mut prev_x, mut prev_y) = match zip_xy.next() {
-            Some((prev_x, prev_y)) => (prev_x, prev_y),
-            None => {
-                ctx.restore();
-                return;
-            }
-        };*/
-
         let from = mapper.map(self.x[0], self.y[0]);
         ctx.move_to(from.x, from.y);
 
         for (curr_x, curr_y) in zip_xy {
             if mapper.check_bounds(*curr_x, *curr_y) {
-                // let from = mapper.map(*prev_x, *prev_y);
-                let to   = mapper.map(*curr_x, *curr_y);
+                let to = mapper.map(*curr_x, *curr_y);
                 ctx.line_to(to.x, to.y);
             } else {
-                //println!("Out of bounds mapping");
+                // eprintln!("Out of bounds mapping");
             }
-            // println!("Now drawing to {:?} {:?}", to.x, to.y);
-            // prev_x = curr_x;
-            // prev_y = curr_y;
         }
         ctx.stroke()?;
         ctx.restore()?;
@@ -185,63 +149,11 @@ impl Mapping for LineMapping {
             self.color = color.parse().unwrap();
         }
 
-        // println!("Mapping json rep: {:?}", rep);
-
         super::update_data_pair_from_json(&mut self.x, &mut self.y, rep);
-        // TODO check properties of other mappings are None.
     }
 
     fn update_extra_data(&mut self, _values : Vec<Vec<String>>) {
-        // println!("Mapping has no extra data");
-    }
 
-    /*fn update_layout(&mut self, node : &Node) -> Result<(), String> {
-        let props = utils::children_as_hash(node, "property");
-        self.color = props.get("color")
-            .ok_or(format!("color property not found"))?
-            .parse()
-            .map_err(|_| format!("Unable to parse color property"))?;
-        self.width = props.get("width")
-            .ok_or(format!("width property not found"))?
-            .parse()
-            .map_err(|_| format!("Unable to parse width property"))?;
-        self.dash_n = props.get("dash")
-            .ok_or(format!("dash property not found"))?
-            .parse()
-            .map_err(|_| format!("Unable to parse dash property"))?;
-        self.col_names[0] = props.get("x")
-            .ok_or(format!("x property not found"))?
-            .clone();
-        self.col_names[1] = props.get("y")
-            .ok_or(format!("y property not found"))?
-            .clone();
-        self.source = props.get("source")
-            .ok_or(format!("Source property not found"))?
-            .clone();
-        Ok(())
-    }*/
-
-    fn properties(&self) -> HashMap<String, String> {
-        let mut properties = MappingType::Line.default_hash();
-        if let Some(e) = properties.get_mut("color") {
-            *e = self.color.to_string();
-        }
-        if let Some(e) = properties.get_mut("width") {
-            *e = self.width.to_string();
-        }
-        if let Some(e) = properties.get_mut("dash"){
-            *e = self.dash_n.to_string();
-        }
-        if let Some(e) = properties.get_mut("x") {
-            *e = self.col_names[0].clone();
-        }
-        if let Some(e) = properties.get_mut("y") {
-            *e = self.col_names[1].clone();
-        }
-        if let Some(e) = properties.get_mut("source") {
-            *e = self.source.clone();
-        }
-        properties
     }
 
     fn mapping_type(&self) -> String {
