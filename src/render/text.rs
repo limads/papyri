@@ -164,8 +164,8 @@ pub fn draw_label(
 ) -> Result<(), Box<dyn Error>> {
     ctx.save()?;
     let ext = sf.text_extents(label);
-    let xadv = ext.x_advance;
-    let height = ext.height;
+    let xadv = ext.x_advance();
+    let height = ext.height();
     let half_xadv = xadv / 2.0;
     let half_height = height / 2.0;
     let x_center_off = match center.0 {

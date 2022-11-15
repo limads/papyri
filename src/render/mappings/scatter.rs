@@ -113,8 +113,6 @@ impl Mapping for ScatterMapping {
                 ctx.arc(pos.x, pos.y, self.radius, 0.0, 2.0*PI);
                 ctx.fill()?;
                 ctx.stroke()?;
-            } else {
-                println!("Out of bounds mapping");
             }
         }
         ctx.restore()?;

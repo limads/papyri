@@ -1153,7 +1153,7 @@ impl Plot {
         labels : &Vec<String>
     ) -> f64 {
         labels.iter()
-            .map(|l| design.font.sf.text_extents(&l[..]).x_advance)
+            .map(|l| design.font.sf.text_extents(&l[..]).x_advance())
             .fold(0.0, |m, f| f64::max(m,f))
     }
 
