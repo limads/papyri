@@ -59,7 +59,7 @@ impl FontData {
         let digits_pattern = Regex::new(r"\d{2}$|\d{2}$").unwrap();
         let sz_match = digits_pattern.find(&font).expect("No font size");
         let sz_txt = sz_match.as_str();
-        let font_size = sz_txt.parse().expect("Unnable to parse font");
+        let font_size = sz_txt.parse().expect("Unable to parse font");
         let mut prefix = &font[0..sz_match.start()];
         let slant_pattern = Regex::new("Italic|Oblique").unwrap();
         let slant_match = slant_pattern.find(prefix);
@@ -102,7 +102,7 @@ impl FontData {
     }
 
     pub fn description(&self) -> String {
-        let mut font = self.font_family.clone();
+        let mut font = self.font_family.to_string();
         font = font + match self.font_slant {
             FontSlant::Normal => "",
             FontSlant::Oblique => " Oblique",

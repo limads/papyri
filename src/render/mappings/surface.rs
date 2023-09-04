@@ -144,7 +144,28 @@ impl Mapping for SurfaceMapping {
         unimplemented!()
     }
 
-    /// The z column maps a ratio between zmin and zmax
+    // raster-based drawing
+    fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
+        if self.x.len() == 0 {
+            return;
+        }
+
+        ctx.save();
+        for ((x, y), z) in self.x.iter().zip(self.y.iter().zip(self.z.iter())) {
+
+            ctx.set_source_rgba(
+                self.color.red().into(),
+                self.color.green().into(),
+                self.color.blue().into(),
+                self.color.alpha().into()
+            );
+        }
+
+        Ok(())
+    }
+
+    // Interpolation/gradient-based drawing.
+    /*/// The z column maps a ratio between zmin and zmax
     /// into a color ratio between color and color max
     fn draw(&self, mapper : &ContextMapper, ctx : &Context) -> Result<(), Box<dyn Error>> {
 
@@ -221,7 +242,7 @@ impl Mapping for SurfaceMapping {
         ctx.paint();
         ctx.restore();
         Ok(())
-    }
+    }*/
 
     /// GSL requires z to be organized as a row-wise matrix, so we
     /// sort the received data within each row and across all rows

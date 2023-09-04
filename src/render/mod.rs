@@ -339,6 +339,17 @@ impl Panel {
         Default::default()
     }
 
+    pub fn new_from_mapping(mapping : crate::model::Mapping) -> Result<Self, String> {
+        let mut plot = crate::model::Plot::default();
+        // TODO adjust scale for single-data mappings (bar)
+        plot.x = crate::model::Scale::new_adjusted(mapping.map.x.as_ref().ok_or("Missing x".to_owned())?)
+            .map_err(|e| format!("{}",e) )?;
+        plot.y = crate::model::Scale::new_adjusted(mapping.map.y.as_ref().ok_or("Missing y".to_owned())?)
+            .map_err(|e| format!("{}",e) )?;
+        plot.mappings = vec![mapping];
+        Self::new_from_single(plot)
+    }
+
     pub fn new_from_single(plot : crate::model::Plot) -> Result<Self, String> {
         
         plot.validate().map_err(|e| format!("{}", e) )?;
@@ -438,16 +449,24 @@ impl Panel {
     }
 
     pub fn new_from_json(json : &str) -> Result<Self, String> {
-        let res_panel : Result<crate::model::Panel, _> = serde_json::from_str(json);
-        match res_panel {
-            Ok(panel_def) => {
-                Self::new_from_model(panel_def)
-            },
-            Err(_e) => {
-                
-                let plot : crate::model::Plot = serde_json::from_str(json)
-                    .map_err(|e| format!("Error parsing plot = {}", e) )?;
-                Self::new_from_single(plot)
+        let v : serde_json::Value = serde_json::from_str(json)
+            .map_err(|e| format!("{}", e) )?;
+        let can_be_panel = v.get("plots").is_some();
+        let can_be_plot = v.get("mappings").is_some();
+        if can_be_panel && !can_be_plot {
+            let panel_def : crate::model::Panel = serde_json::from_value(v)
+                .map_err(|e| format!("{}", e) )?;
+            Self::new_from_model(panel_def)
+        } else if !can_be_panel && can_be_plot {
+            let plot_def : crate::model::Plot = serde_json::from_value(v)
+                .map_err(|e| format!("{}", e) )?;
+            Self::new_from_single(plot_def)
+        } else {
+            let m : Result<crate::model::Mapping, _> = serde_json::from_value(v);
+            if let Ok(m) = m {
+                Self::new_from_mapping(m)
+            } else {
+                Err("Invalid top-level fields (expected one of 'mappings' or 'plots' array)".to_string())
             }
         }
     }

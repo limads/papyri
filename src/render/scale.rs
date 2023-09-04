@@ -142,9 +142,19 @@ impl Scale {
         let adj : Adjustment = if let Some(adj) = rep.adjust {
             adj.parse().or(Err(ScaleError::InvalidAdjustment))?
         } else {
-            Adjustment::Tight
+            crate::model::DEFAULT_ADJUSTMENT
         };
-        let scale = Self::new_full(rep.label, rep.precision, rep.from, rep.to, rep.intervals, rep.log, rep.invert, rep.offset, adj);
+        let scale = Self::new_full(
+            rep.label,
+            rep.precision.unwrap_or(crate::model::DEFAULT_PRECISION),
+            rep.from,
+            rep.to,
+            rep.intervals.unwrap_or(crate::model::DEFAULT_INTERVALS),
+            rep.log.unwrap_or(crate::model::DEFAULT_LOG),
+            rep.invert.unwrap_or(crate::model::DEFAULT_INVERT),
+            rep.offset.unwrap_or(crate::model::DEFAULT_OFFSET),
+            adj
+        );
         if scale.n_intervals as usize + 1 != scale.steps.len() {
             Err(ScaleError::StepNumber)?;
         }

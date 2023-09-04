@@ -104,7 +104,7 @@ pub enum MappingType {
     Scatter,
     Bar,
     Area,
-    // Surface,
+    Surface,
     Text,
     Interval
 }
@@ -117,7 +117,7 @@ impl MappingType {
             "scatter" => Some(MappingType::Scatter),
             "bar" => Some(MappingType::Bar),
             "area" => Some(MappingType::Area),
-            // "surface" => Some(MappingType::Surface),
+            "surface" => Some(MappingType::Surface),
             "text" => Some(MappingType::Text),
             "interval" => Some(MappingType::Interval),
             _ => None
@@ -411,24 +411,35 @@ pub enum ScaleError {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Scale {
     pub label : String,
-    pub precision : i32,
     pub from : f64,
     pub to : f64,
-    pub intervals : i32,
-    pub log : bool,
-    pub invert : bool,
-    pub offset : i32,
+    pub precision : Option<i32>,
+    pub intervals : Option<i32>,
+    pub log : Option<bool>,
+    pub invert : Option<bool>,
+    pub offset : Option<i32>,
     pub adjust : Option<String>
 }
 
 impl Scale {
 
+    pub fn new_adjusted(vs : &[f64]) -> Result<Self, ScaleError> {
+        let mut scale = crate::model::Scale::default();
+        scale.from = *vs.iter().min_by(|a, b| a.total_cmp(&b) )
+            .ok_or(ScaleError::InvalidAdjustment)?;
+        scale.to = *vs.iter().max_by(|a, b| a.total_cmp(&b) )
+            .ok_or(ScaleError::InvalidAdjustment)?;
+        Ok(scale)
+    }
+
     pub fn validate(&self) -> Result<(), ScaleError> {
         if self.from > self.to {
             Err(ScaleError::InvertedRange)?;
         }
-        if self.offset < 0 || self.offset > 100 {
-            Err(ScaleError::InvalidOffset)?;
+        if let Some(offset) = self.offset {
+            if offset < 0 || offset > 100 {
+                Err(ScaleError::InvalidOffset)?;
+            }
         }
         if let Some(adj) = &self.adjust {
             if Adjustment::from_str(adj).is_err() {
@@ -448,18 +459,30 @@ impl Scale {
 
 }
 
+pub const DEFAULT_INVERT : bool = false;
+
+pub const DEFAULT_LOG : bool = false;
+
+pub const DEFAULT_OFFSET : i32 = 0;
+
+pub const DEFAULT_INTERVALS : i32 = 5;
+
+pub const DEFAULT_PRECISION : i32 = 2;
+
+pub const DEFAULT_ADJUSTMENT : Adjustment = Adjustment::Off;
+
 impl Default for Scale {
     fn default() -> Self {
         Self {
             label : String::new(),
-            precision : 2,
             from : 0.0,
             to : 1.0,
-            intervals : 5,
-            log : false,
-            invert : false,
-            offset : 0,
-            adjust : Some(String::from("tight"))
+            precision : Some(DEFAULT_PRECISION),
+            intervals : Some(DEFAULT_INTERVALS),
+            log : Some(DEFAULT_LOG),
+            invert : Some(DEFAULT_INVERT),
+            offset : Some(DEFAULT_OFFSET),
+            adjust : Some(String::from("off"))
         }
     }
 }
@@ -483,17 +506,17 @@ impl ScaleBuilder {
     }
 
     pub fn precision(mut self, precision : i32) -> Self {
-        self.0.precision = precision;
+        self.0.precision = Some(precision);
         self
     }
 
     pub fn intervals(mut self, intervals : i32) -> Self {
-        self.0.intervals = intervals;
+        self.0.intervals = Some(intervals);
         self
     }
 
     pub fn offset(mut self, offset : i32) -> Self {
-        self.0.offset = offset;
+        self.0.offset = Some(offset);
         self
     }
 
@@ -508,12 +531,12 @@ impl ScaleBuilder {
     }
 
     pub fn log(mut self, log : bool) -> Self {
-        self.0.log = log;
+        self.0.log = Some(log);
         self
     }
 
     pub fn invert(mut self, invert : bool) -> Self {
-        self.0.invert = invert;
+        self.0.invert = Some(invert);
         self
     }
 
@@ -522,6 +545,10 @@ impl ScaleBuilder {
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Map {
 
+    /* TODO apply custom parsing here. It is very common to
+    get floating point values that are f64::NAN, which will
+    be converted to Json's null. Inform the user when there
+    are null values, instead of a generic error message. */
     pub x : Option<Vec<f64>>,
     pub y : Option<Vec<f64>>,
 
@@ -583,6 +610,15 @@ impl Map {
         }
     }
     
+    pub fn empty_for_surface() -> Self {
+        Self {
+            x : Some(Vec::new()),
+            y : Some(Vec::new()),
+            z : Some(Vec::new()),
+            ..Default::default()
+        }
+    }
+
     pub fn empty_for_label() -> Self {
         Self {
             x : Some(Vec::new()),
@@ -956,6 +992,11 @@ impl BarBuilder {
         self.0.vertical = vertical;
         self
     }
+
+    pub fn color(mut self, color : &str) -> Self {
+        self.0.color = color.to_string();
+        self
+    }
 }
 
 impl Bar {
@@ -1005,6 +1046,93 @@ impl From<Bar> for Mapping {
 
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Surface {
+    pub map : Map,
+    pub color : String,
+    pub color_final : String,
+    pub z_start : f64,
+    pub z_end : f64
+}
+
+pub struct SurfaceBuilder(Surface);
+
+impl SurfaceBuilder {
+
+    pub fn build(self) -> Surface {
+        self.0
+    }
+
+    pub fn map(mut self, x : Vec<f64>, y : Vec<f64>, z : Vec<f64>) -> Self {
+        self.0.map = Map { x : Some(x), y : Some(y), z : Some(z), text : None };
+        self
+    }
+
+    pub fn color(mut self, color : &str) -> Self {
+        self.0.color = color.to_string();
+        self
+    }
+
+    pub fn color_final(mut self, color : &str) -> Self {
+        self.0.color_final = color.to_string();
+        self
+    }
+
+    pub fn z_start(mut self, v : f64) -> Self {
+        self.0.z_start = v;
+        self
+    }
+
+    pub fn z_end(mut self, v : f64) -> Self {
+        self.0.z_end = v;
+        self
+    }
+
+}
+
+impl Surface {
+
+    pub fn new() -> Surface {
+        Surface::default()
+    }
+
+    pub fn builder() -> SurfaceBuilder {
+        SurfaceBuilder(Self::default())
+    }
+
+}
+
+impl Default for Surface {
+
+    fn default() -> Surface {
+        Surface {
+            map : Map::empty_for_bar(),
+            color : String::from("#000000"),
+            color_final : String::from("#000000"),
+            z_start : 0.0,
+            z_end : 1.0
+        }
+    }
+
+}
+
+impl From<Surface> for Mapping {
+
+    fn from(surf : Surface) -> Self {
+        let Surface { map, color, color_final, z_start, z_end } = surf;
+        Mapping {
+            kind : String::from("surface"),
+            map : map,
+            color : Some(color),
+            color_final : Some(color_final),
+            z_start : Some(z_start),
+            z_end :  Some(z_end),
+            ..Default::default()
+        }
+    }
+
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Property {
     Kind,
@@ -1017,7 +1145,10 @@ pub enum Property {
     Radius,
     Limits,
     Center,
-    Origin
+    Origin,
+    ColorFinal,
+    ZStart,
+    ZEnd
 }
 
 impl Property {
@@ -1030,7 +1161,8 @@ impl Property {
             Property::Font => *m == MappingType::Text,
             Property::Radius => *m == MappingType::Scatter,
             Property::Limits => *m == MappingType::Interval,
-            Property::Center | Property::Origin => *m == MappingType::Bar
+            Property::Center | Property::Origin => *m == MappingType::Bar,
+            Property::ZStart | Property::ZEnd | Property::ColorFinal => *m == MappingType::Surface
         }
     }
     
@@ -1051,6 +1183,9 @@ impl Property {
             Self::Limits => format!("limits"),
             Self::Center => format!("center"),
             Self::Origin => format!("origin"),
+            Self::ZStart => format!("zstart"),
+            Self::ZEnd => format!("zend"),
+            Self::ColorFinal => format!("colorfinal"),
         }
     }
     
@@ -1085,6 +1220,11 @@ pub struct Mapping {
     // Bar-specific
     pub center : Option<bool>,
     pub origin : Option<f64>,
+
+    // Surface-specific
+    pub color_final : Option<String>,
+    pub z_start : Option<f64>,
+    pub z_end : Option<f64>
 
 }
 
@@ -1144,6 +1284,19 @@ impl Mapping {
         if self.origin.is_some() {
             props.push(Property::Origin);
         }
+
+        if self.color_final.is_some() {
+            props.push(Property::ColorFinal);
+        }
+
+        if self.z_start.is_some() {
+            props.push(Property::ZStart);
+        }
+
+        if self.z_end.is_some() {
+            props.push(Property::ZEnd);
+        }
+
         props
     }
     
@@ -1292,7 +1445,18 @@ impl Mapping {
                         return Err(MappingError::InvalidProperty(pr.name()));
                     }
                 }
-            }
+            },
+            MappingType::Surface => {
+                let empty = Map::empty_for_surface();
+                if !self.map.like(&empty) {
+                    return Err(MappingError::DataMapping { expected : empty.description(), informed : self.map.description() });
+                }
+                for pr in self.properties() {
+                    if pr.absent(&MappingType::Surface) {
+                        return Err(MappingError::InvalidProperty(pr.name()));
+                    }
+                }
+            },
         }
         Ok(())
     }
@@ -1391,8 +1555,10 @@ impl PlotBuilder {
     }
 
     /// Appends several mappings to this vector (all of the same time).
-    pub fn mappings<M, const U : usize>(mut self, mappings : [M; U]) -> Self
+    /// Can be called multiple times with different mapping types.
+    pub fn mappings<I, M>(mut self, mappings : I) -> Self
     where
+        I : IntoIterator<Item=M>,
         M : Into<Mapping>
     {
         for m in mappings {
@@ -1438,12 +1604,23 @@ impl Default for Panel {
 
     fn default() -> Self {
         Panel {
-            plots : Vec::new(),
+            plots : vec![Plot::default()],
             design : Some(Design::default()),
             layout : Some(Layout::default())
         }
     }
     
+}
+
+impl Panel {
+
+    pub fn default_dark() -> Self {
+        let mut panel = Self::default();
+        panel.design.as_mut().unwrap().bgcolor = format!("#1e1e1eff");
+        panel.design.as_mut().unwrap().fgcolor = format!("#454545ff");
+        panel
+    }
+
 }
 
 impl Panel {
