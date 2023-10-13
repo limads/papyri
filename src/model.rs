@@ -418,7 +418,8 @@ pub struct Scale {
     pub log : Option<bool>,
     pub invert : Option<bool>,
     pub offset : Option<i32>,
-    pub adjust : Option<String>
+    pub adjust : Option<String>,
+    pub guide : Option<bool>
 }
 
 impl Scale {
@@ -482,7 +483,8 @@ impl Default for Scale {
             log : Some(DEFAULT_LOG),
             invert : Some(DEFAULT_INVERT),
             offset : Some(DEFAULT_OFFSET),
-            adjust : Some(String::from("off"))
+            adjust : Some(String::from("off")),
+            guide : None
         }
     }
 }
@@ -493,6 +495,11 @@ impl ScaleBuilder {
 
     pub fn build(self) -> Scale {
         self.0
+    }
+
+    pub fn guide(mut self, guide : bool) -> Self {
+        self.0.guide = Some(guide);
+        self
     }
 
     pub fn label(mut self, label : &str) -> Self {
@@ -549,15 +556,43 @@ pub struct Map {
     get floating point values that are f64::NAN, which will
     be converted to Json's null. Inform the user when there
     are null values, instead of a generic error message. */
+
+    //#[serde(deserialize_with = "deser_num_data")]
     pub x : Option<Vec<f64>>,
+
+    //#[serde(deserialize_with = "deser_num_data")]
     pub y : Option<Vec<f64>>,
 
     //surface and area-specific
+    //#[serde(deserialize_with = "deser_num_data")]
     pub z : Option<Vec<f64>>,
 
     // Text-specific
+    //#[serde(deserialize_with = "deser_text_data")]
     pub text : Option<Vec<String>>
 }
+
+/*// This avoids conversion from NULL or null to serde_json::Value::Nil,
+// (nulls can be represented as such on the textual data).
+fn deser_text_data<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: &str = Deserialize::deserialize(deserializer)?;
+    Ok(s.to_string())
+}
+
+fn deser_num_data<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s: &str = Deserialize::deserialize(deserializer)?;
+    if let Ok(i) = s.parse::<i64>() {
+        Ok(i as f64)
+    } else {
+        s.parse::<f64>().map_err(D::Error::custom)
+    }
+}*/
 
 impl Map {
 
@@ -1197,9 +1232,10 @@ pub struct Mapping {
     // Must be line|scatter|area|bar|text|interval
     pub kind : String,
 
+    pub map : Map,
+
     // Shared by all mappings
     pub color : Option<String>,
-    pub map : Map,
 
     // Shared by line, bar and interval
     pub width : Option<f64>,

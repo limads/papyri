@@ -56,7 +56,7 @@ impl FontData {
     }
 
     pub fn new_from_string(font : &str) -> Self {
-        let digits_pattern = Regex::new(r"\d{2}$|\d{2}$").unwrap();
+        let digits_pattern = Regex::new(r"\d{2}$|\d{1}$").unwrap();
         let sz_match = digits_pattern.find(&font).expect("No font size");
         let sz_txt = sz_match.as_str();
         let font_size = sz_txt.parse().expect("Unable to parse font");

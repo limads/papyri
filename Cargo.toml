@@ -24,6 +24,6 @@ base64="0.13.0"
 thiserror = "1.0.31"
 
 # Glib-based dependencies, for rendering.
-gdk4 = { version = "0.5.0", optional = true }
-gdk-pixbuf = { version = "0.16.0", optional = true }
-cairo-rs = { version = "0.16.1", features = ["svg", "png", "ps"], optional = true }
+gdk4 = { version = "0.7.2", optional = true }
+gdk-pixbuf = { version = "0.18.0", optional = true }
+cairo-rs = { version = "0.18.2", features = ["svg", "png", "ps"], optional = true }

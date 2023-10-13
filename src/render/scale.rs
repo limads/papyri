@@ -15,6 +15,7 @@ pub struct Scale {
     pub precision : i32,
     pub from : f64,
     pub to : f64,
+    pub guide : bool,
     pub steps : Vec<f64>,
     pub n_intervals : i32,
     pub log : bool,
@@ -31,6 +32,7 @@ impl Default for Scale {
             precision : 4,
             from : 0.0,
             to : 1.0,
+            guide : true,
             steps : vec![],
             n_intervals : 4,
             log : false,
@@ -124,6 +126,9 @@ impl Scale {
             ScaleProperty::NIntervals(n_int) => {
                 self.n_intervals = n_int;
             },
+            ScaleProperty::Guide(guide) => {
+                self.guide = guide;
+            },
             ScaleProperty::Adjustment(adj) => {
                 self.adj = adj;
             }
@@ -144,7 +149,7 @@ impl Scale {
         } else {
             crate::model::DEFAULT_ADJUSTMENT
         };
-        let scale = Self::new_full(
+        let mut scale = Self::new_full(
             rep.label,
             rep.precision.unwrap_or(crate::model::DEFAULT_PRECISION),
             rep.from,
@@ -158,6 +163,7 @@ impl Scale {
         if scale.n_intervals as usize + 1 != scale.steps.len() {
             Err(ScaleError::StepNumber)?;
         }
+        scale.guide = rep.guide.unwrap_or(true);
         Ok(scale)
     }
 
@@ -173,7 +179,7 @@ impl Scale {
         adj : Adjustment
     ) -> Scale {
         let steps = define_steps(n_intervals, from, to, offset, log);
-        Scale{ label, precision, from, to, steps, log, invert, offset, n_intervals, adj }
+        Scale{ label, precision, from, to, steps, log, invert, offset, n_intervals, adj, guide : true }
     }
 
     pub fn description(&self) -> HashMap<String, String> {
@@ -186,6 +192,7 @@ impl Scale {
         desc.insert("invert".into(), self.invert.to_string());
         desc.insert("log_scaling".into(), self.log.to_string());
         desc.insert("grid_offset".into(), self.offset.to_string());
+        desc.insert("guide".into(), format!("{:?}", self.guide));
         desc
     }
 

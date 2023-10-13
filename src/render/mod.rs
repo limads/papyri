@@ -50,7 +50,7 @@ pub use mappings::area::*;
 
 pub use mappings::interval::*;
 
-mod text;
+pub mod text;
 
 use text::FontData;
 
@@ -119,6 +119,7 @@ pub enum ScaleProperty {
     GridOffset(i32),
     Precision(i32),
     NIntervals(i32),
+    Guide(bool),
     Adjustment(Adjustment)
 }
 
@@ -451,23 +452,34 @@ impl Panel {
     pub fn new_from_json(json : &str) -> Result<Self, String> {
         let v : serde_json::Value = serde_json::from_str(json)
             .map_err(|e| format!("{}", e) )?;
+        Self::new_from_json_value(v)
+    }
+
+    pub fn new_from_json_value(v : serde_json::Value) -> Result<Self, String> {
+
+        /* This is the only obligatory key for a panel (and not present at plot or mapping definition) */
         let can_be_panel = v.get("plots").is_some();
-        let can_be_plot = v.get("mappings").is_some();
-        if can_be_panel && !can_be_plot {
+
+        /* Those are the obligatory keys for a plot (and not present at panel or mapping definition) */
+        let can_be_plot = v.get("mappings").is_some() && v.get("x").is_some() && v.get("y").is_some();
+
+        /* Those are the obligatory keys for a mapping (and not present at panel or plot definition) */
+        let can_be_mapping = v.get("kind").is_some() && v.get("map").is_some();
+
+        if can_be_panel && !can_be_plot && !can_be_mapping {
             let panel_def : crate::model::Panel = serde_json::from_value(v)
-                .map_err(|e| format!("{}", e) )?;
+                .map_err(|e| format!("Error in panel definition: {}", e) )?;
             Self::new_from_model(panel_def)
-        } else if !can_be_panel && can_be_plot {
+        } else if can_be_plot && !can_be_panel && !can_be_mapping {
             let plot_def : crate::model::Plot = serde_json::from_value(v)
-                .map_err(|e| format!("{}", e) )?;
+                .map_err(|e| format!("Error in plot definition: {}", e) )?;
             Self::new_from_single(plot_def)
+        } else if can_be_mapping && !can_be_panel && !can_be_plot {
+            let m : crate::model::Mapping = serde_json::from_value(v)
+                .map_err(|e| format!("Error in mapping definition: {}", e) )?;
+            Self::new_from_mapping(m)
         } else {
-            let m : Result<crate::model::Mapping, _> = serde_json::from_value(v);
-            if let Ok(m) = m {
-                Self::new_from_mapping(m)
-            } else {
-                Err("Invalid top-level fields (expected one of 'mappings' or 'plots' array)".to_string())
-            }
+            Err("Invalid JSON definition".to_string())
         }
     }
 
@@ -1202,7 +1214,9 @@ impl Plot {
             };
             
             self.draw_grid_line(ctx, design, from, to)?;
-            self.draw_grid_value(ctx, design, x_label, from, true, 0.0, 1.5)?;
+            if self.x.guide {
+                self.draw_grid_value(ctx, design, x_label, from, true, 0.0, 1.5)?;
+            }
         }
 
         let mut y_labels = Plot::steps_to_labels(
@@ -1232,7 +1246,9 @@ impl Plot {
             //    false => from
             //};
             from.x -= 1.1*max_extent;
-            self.draw_grid_value(ctx, design, y_label, from, false, 0.0, 0.0)?;
+            if self.y.guide {
+                self.draw_grid_value(ctx, design, y_label, from, false, 0.0, 0.0)?;
+            }
         }
         self.draw_scale_names(ctx, design)?;
         ctx.restore()?;
