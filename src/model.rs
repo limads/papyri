@@ -189,7 +189,8 @@ pub struct Design {
     pub bgcolor : String,
     pub fgcolor : String,
     pub width : i32,
-    pub font : String
+    pub font : String,
+    // pub fontcolor : String
 }
 
 #[derive(Debug, Default)]
@@ -200,6 +201,11 @@ impl DesignBuilder {
     pub fn build(self) -> Design {
         self.0
     }
+
+    /*pub fn fontcolor(mut self, font : &str) -> Self {
+        self.fontcolor = s.to_string();
+        self
+    }*/
 
     pub fn bgcolor(mut self, s : &str) -> Self {
         self.0.bgcolor = s.to_string();
@@ -238,6 +244,13 @@ pub enum DesignError {
 }
 
 impl Design {
+
+    pub fn default_dark() -> Self {
+        let mut design = Self::default();
+        design.bgcolor = format!("#1e1e1eff");
+        design.fgcolor = format!("#454545ff");
+        design
+    }
 
     pub fn validate(&self) -> Result<(), DesignError> {
         if self.width < 0 || self.width > 50 {
@@ -1652,8 +1665,7 @@ impl Panel {
 
     pub fn default_dark() -> Self {
         let mut panel = Self::default();
-        panel.design.as_mut().unwrap().bgcolor = format!("#1e1e1eff");
-        panel.design.as_mut().unwrap().fgcolor = format!("#454545ff");
+        *panel.design.as_mut().unwrap() = Design::default_dark();
         panel
     }
 
